@@ -81,7 +81,10 @@ export default function CoachPage() {
                 })
             });
 
-            if (!response.ok) throw new Error("Gagal ngobrol dengan AI");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Gagal ngobrol dengan AI");
+            }
 
             const data = await response.json();
             let aiReplyText = data.reply || "";
