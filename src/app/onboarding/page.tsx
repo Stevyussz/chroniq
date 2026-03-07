@@ -56,9 +56,10 @@ export default function OnboardingPage() {
                 setName(result.user.displayName);
             }
             handleNext(); // Move to Step 1 (Profile)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Login failed:", error);
-            alert("Gagal login dengan Google. Coba lagi.");
+            // Show the actual Firebase Error Code to the user so they can report it
+            alert(`Gagal login dengan Google. Error: ${error?.code || error?.message || 'Unknown Error'}`);
         } finally {
             setIsAuthenticating(false);
         }
