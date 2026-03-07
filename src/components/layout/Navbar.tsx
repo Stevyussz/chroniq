@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, Sparkles, Map, Leaf } from "lucide-react";
+import { LayoutDashboard, Sparkles, Map } from "lucide-react";
+import Image from "next/image";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -27,8 +28,8 @@ export function Navbar() {
 
                 {/* Brand/Logo Area */}
                 <div className="flex items-center gap-2 pl-3 pr-2 mr-2 border-r border-[#efebe9]/50">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ffab91] to-[#ffccbc] flex items-center justify-center text-white shadow-inner">
-                        <Leaf className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ffab91] to-[#ffccbc] flex items-center justify-center shadow-inner overflow-hidden">
+                        <Image src="/icon.png" alt="Chroniq Logo" width={24} height={24} className="object-cover" />
                     </div>
                     <span className="font-extrabold text-[#5d4037] hidden sm:block tracking-tight text-lg">
                         Chroniq<span className="text-[#a1887f] font-medium text-xs ml-1">v1.0</span>

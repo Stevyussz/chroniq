@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Zap, ChevronDown, ChevronUp, Brain } from "lucide-react";
 import { MagicInput } from "./MagicInput";
 import { type Activity } from "@/types";
+import Image from "next/image";
 
 interface QuickAddTaskProps {
     onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string }) => void;
@@ -81,6 +82,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
 
             <CardHeader className="pb-3 pt-5 px-6">
                 <CardTitle className="text-lg flex items-center gap-2 text-[#8d6e63]">
+                    <Image src="/icon.png" alt="Chroniq Logo" width={20} height={20} className="w-5 h-5 drop-shadow-sm" />
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] to-[#f57c00] font-black">Chroniq</span> AI Quick Add
                 </CardTitle>
                 <CardDescription className="text-xs">

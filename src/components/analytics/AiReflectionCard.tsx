@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Sparkles, Brain, Loader2, RefreshCw } from "lucide-react";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePoeStore } from "@/store/useStore";
@@ -80,7 +81,7 @@ export function AiReflectionCard() {
                     <div className="flex items-center gap-4">
                         <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] text-white rounded-2xl flex items-center justify-center shadow-inner relative overflow-hidden group">
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                            {isLoading ? <Loader2 className="w-7 h-7 animate-spin drop-shadow-sm" /> : <Brain className="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform" />}
+                            {isLoading ? <Loader2 className="w-7 h-7 text-white animate-spin drop-shadow-sm" /> : <Image src="/icon.png" alt="Chroniq Logo" width={32} height={32} className="drop-shadow-sm group-hover:scale-110 transition-transform" />}
                         </div>
                         <div>
                             <h3 className="text-xl md:text-2xl font-black text-[#8d6e63] flex items-center gap-2 mb-1 tracking-tight">
