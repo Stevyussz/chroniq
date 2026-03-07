@@ -125,12 +125,12 @@ export default function CoachPage() {
                 content: cleanReply + (actionParsed ? "\n\n📍 *(Tindakan sudah otomatis dieksekusi)*" : "")
             }]);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Chat error", error);
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: "model",
-                content: "Waduh, koneksi ke otak Chroniq AI lagi terputus nih. Coba sapa lagi ya!"
+                content: `Waduh, koneksi ke otak Chroniq AI lagi terputus nih. Info Error: ${error?.message || "Unknown"}. Coba sapa lagi ya!`
             }]);
         } finally {
             setIsThinking(false);
