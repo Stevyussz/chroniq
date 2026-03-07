@@ -38,6 +38,11 @@ export async function POST(req: Request) {
                             category: {
                                 type: SchemaType.STRING,
                                 description: "Hanya gunakan salah satu dari: 'Fokus Tinggi (Analitis)', 'Kreativitas (Desain/Nulis)', 'Tugas Ringan (Email/Kord)', 'Fisik (Beres-beres)', 'Belajar/Membaca', 'Ad-Hoc (Dadakan)'"
+                            },
+                            preferred_start: {
+                                type: SchemaType.STRING,
+                                description: "Format HH:mm. Opsional! Isikan HANYA JIKA tugas ini secara logika manusia HARUS dilakukan di pagi/siang/malam hari (Misal: 'Mandi Pagi' -> 06:00, 'Makan Siang' -> 12:30). Jangan asal isi jika tidak relevan.",
+                                nullable: true
                             }
                         },
                         required: ["id", "user_id", "name", "target_duration", "priority", "category"]
@@ -56,8 +61,9 @@ Aturan Wajib:
    - Jika kategori tugas adalah 'Tugas Ringan (Email/Kord)', 'Fisik (Beres-beres)', atau 'Ad-Hoc (Dadakan)' -> MAKSIMALKAN priority di angka 3. Jangan pernah beri nilai 4 atau 5 untuk tugas receh, meskipun user menaruhnya di 5. Ini menjaga agar Engine tidak membuang Peak Energy untuk tugas receh.
    - Jika kategori tugas adalah 'Fokus Tinggi (Analitis)', 'Belajar/Membaca' -> MINIMALKAN priority di angka 4. Jangan biarkan user menaruh tugas mikir berat di priority 1 atau 2, karena Engine akan menaruhnya di zona ngantuk/Low Energy.
 3. Koreksi KATEGORI yang salah. Misal user menulis "Sapu rumah" tapi kategorinya "Fokus Tinggi", ubah menjadi "Fisik (Beres-beres)".
-4. Kembalikan array berisi seluruh aktivitas (baik yang dipecah maupun yang tidak, pastikan tidak ada yang hilang).
-5. OUTPUT HARUS BERUPA ARRAY JSON STRICT.
+4. SUSUNAN KRONOLOGIS (Sangat Penting!): Evaluasi nama tugas berdasarkan logika manusia sehari-hari. Jika tugas mensyaratkan waktu tertentu (contoh: "Sarapan", "Mandi Pagi", "Olahraga Pagi", "Tidur Siang"), ANDA WAJIB mengisi field 'preferred_start' (contoh: "07:00", "06:30"). Biarkan kosong/null untuk tugas yang bebas dikerjakan kapan saja.
+5. Kembalikan array berisi seluruh aktivitas (baik yang dipecah maupun yang tidak, pastikan tidak ada yang hilang).
+6. OUTPUT HARUS BERUPA ARRAY JSON STRICT.
 
 Input Mentah User:
 ${JSON.stringify(activities, null, 2)}

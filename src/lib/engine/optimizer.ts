@@ -132,10 +132,21 @@ export function generateSchedule(
 
     freeGaps.sort((a, b) => a.start - b.start);
 
-    // 3. Place Activities
-    // Sort activities by priority FIRST, then by Category to group similar tasks (minimizing Attention Residue / Context Switching),
-    // THEN by longest duration first (Bin Packing heuristic LPT).
+    // PRIORITIZATION ALGORITHM (Phase 27 Upgrade - Chronological First)
+    // 1. Tasks with a `preferred_start` MUST be placed first, sorted chronologically. If they share the same time, sort by priority.
+    // 2. Flexible tasks follow: Sorted by Priority -> Category -> Longest Duration (LPT Bin Packing).
     const activitiesToPlace = [...allocatedActivities].sort((a, b) => {
+        // Handle preferred_start anchors
+        if (a.preferred_start && !b.preferred_start) return -1;
+        if (!a.preferred_start && b.preferred_start) return 1;
+        if (a.preferred_start && b.preferred_start) {
+            const timeA = timeToMinutes(a.preferred_start);
+            const timeB = timeToMinutes(b.preferred_start);
+            if (timeA !== timeB) return timeA - timeB; // Sort chronologically
+            return b.priority - a.priority; // Same time? Highest priority wins the chunk
+        }
+
+        // Standard Flexible Batching
         if (b.priority !== a.priority) return b.priority - a.priority; // Primary: Priority
         const catA = rawActivities.find(ra => ra.id === a.id)?.category || "none";
         const catB = rawActivities.find(ra => ra.id === b.id)?.category || "none";
