@@ -1,21 +1,16 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+require('dotenv').config({ path: '.env.local' });
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+async function run() {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    const messages = [
+        { role: 'user', content: 'Halo Chroniq!' }
+    ];
 
-export async function POST(req: Request) {
-    try {
-        const { messages, context } = await req.json();
+    const context = { level: 1, exp: 0, upcomingTasksCount: 0, sleepInfo: 'Belum di set' };
 
-        if (!messages || !Array.isArray(messages)) {
-            return NextResponse.json({ error: 'Messages array is required' }, { status: 400 });
-        }
-
-        // We will build the model with system instructions later after declaring the prompt
-        let model;
-
-        // System Instruction using the Coach Persona + Rules for actionable JSON
-        const systemPrompt = `
+    const systemPrompt = `
 Anda adalah "Chroniq AI", AI pendamping produktivitas pribadi yang tertanam dalam aplikasi penjadwalan bernama "Chroniq".
 Kepribadian Anda: Bersahabat, berempati, pragmatis, seperti seorang Coach (Pelatih) yang mengerti batasan energi manusia, psikologi terapan, dan neurosains (flow state, sirkadian, kebiasaan atomik).
 
@@ -54,49 +49,42 @@ Jika user meminta menambah atau menghapus tugas, gunakan ADD_TASK atau DELETE_TA
 Selalu optimis bahwa human error itu wajar. Gunakan filosofi: "Sistem yang baik harus melayani ritme biologis manusia, bukan manusia yang menjadi budak jam."
 `;
 
-        model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
-            systemInstruction: systemPrompt
-        });
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: systemPrompt
+    });
 
-        // The last message is conceptually the prompt, but we already have history.
-        const userMessages = messages.filter((m: any) => m.role === 'user');
-        const lastUserPrompt = userMessages[userMessages.length - 1]?.content || "Halo Chroniq!";
+    const userMessages = messages.filter((m) => m.role === 'user');
+    const lastUserPrompt = userMessages[userMessages.length - 1]?.content || "Halo Chroniq!";
 
-        // Ensure history strictly alternates and starts with 'user'
-        const rawHistory = messages.slice(0, messages.length - 1);
-        const formattedHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
-        let expectedRole: "user" | "model" = 'user';
+    const rawHistory = messages.slice(0, messages.length - 1);
+    const formattedHistory = [];
+    let expectedRole = 'user';
 
-        for (const msg of rawHistory) {
-            const role = msg.role === 'user' ? 'user' : 'model';
+    for (const msg of rawHistory) {
+        const role = msg.role === 'user' ? 'user' : 'model';
 
-            if (role === expectedRole) {
-                formattedHistory.push({
-                    role,
-                    parts: [{ text: msg.content }]
-                });
-                expectedRole = expectedRole === 'user' ? 'model' : 'user';
-            } else if (formattedHistory.length > 0) {
-                // If same role consecutively, merge them
-                formattedHistory[formattedHistory.length - 1].parts[0].text += '\n\n' + msg.content;
-            } else if (role === 'model') {
-                // Skip model if it's the very first message because history MUST start with user
-                continue;
-            }
+        if (role === expectedRole) {
+            formattedHistory.push({
+                role,
+                parts: [{ text: msg.content }]
+            });
+            expectedRole = expectedRole === 'user' ? 'model' : 'user';
+        } else if (formattedHistory.length > 0) {
+            formattedHistory[formattedHistory.length - 1].parts[0].text += '\n\n' + msg.content;
+        } else if (role === 'model') {
+            continue;
         }
+    }
 
+    try {
         const chatSession = model.startChat({
             history: formattedHistory
         });
-
         const result = await chatSession.sendMessage(lastUserPrompt);
-        const textResponse = result.response.text();
-
-        return NextResponse.json({ reply: textResponse });
-
-    } catch (error: any) {
-        console.error('AI Chat Error:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        console.log("SUCCESS:", result.response.text());
+    } catch (error) {
+        console.error("API ERROR:", error);
     }
 }
+run();

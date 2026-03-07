@@ -12,10 +12,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing task parameters.' }, { status: 400 });
         }
 
-        // We use gemini-1.5-flash as it's the fastest and widely available in free tier
+        // We use gemini-2.0-flash as it's the fastest and widely available in free tier
         // configuring it to strictly return JSON matching our schema.
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: {
