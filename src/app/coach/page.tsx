@@ -76,7 +76,7 @@ export default function CoachPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: [...messages, userMsg],
+                    messages: [...messages, userMsg].filter(m => m.id !== "sys-welcome"),
                     context
                 })
             });
