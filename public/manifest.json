@@ -1,0 +1,17 @@
+{
+    "name": "Chroniq",
+    "short_name": "Chroniq",
+    "description": "Chroniq: Work with your rhythm.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#FDFBF7",
+    "theme_color": "#FDFBF7",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "192x192 512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

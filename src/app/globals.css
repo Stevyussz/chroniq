@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Japanese Anime Cozy Light Theme */
+  --background: #fffbfa;
+  /* Soft sakura tinted white paper */
+  --foreground: #5d4037;
+  /* Warm soft brown text */
+  --text-muted: #8d6e63;
+  /* Lighter brown-gray */
+
+  /* POE specific colors */
+  --color-energy-peak: #ffab91;
+  /* Soft coral/sakura pink */
+  --color-energy-medium: #ffe082;
+  /* Warm soft amber/yellow */
+  --color-energy-low: #a5d6a7;
+  /* Soft matcha green */
+
+  /* Accent color */
+  --accent: #ffccbc;
+  /* Soft peach */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Nunito", "M PLUS Rounded 1c", ui-sans-serif, system-ui, sans-serif;
+
+  --color-peak: var(--color-energy-peak);
+  --color-medium: var(--color-energy-medium);
+  --color-low: var(--color-energy-low);
+  --color-accent: var(--accent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Force light mode body style with subtle diary/notebook pattern */
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Elegant and calm animated background texture */
+body::before {
+  content: "";
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: -1;
+  background-image: radial-gradient(#d7ccc8 2px, transparent 2px);
+  background-size: 32px 32px;
+  animation: drift 150s linear infinite;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@keyframes drift {
+  0% {
+    transform: rotate(0deg) translate(0, 0);
+  }
+
+  100% {
+    transform: rotate(360deg) translate(50px, 50px);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Base styles for scrollbars to look cute */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d7ccc8;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bcaaa4;
 }
