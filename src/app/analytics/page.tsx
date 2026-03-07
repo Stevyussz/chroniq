@@ -87,7 +87,7 @@ export default function AnalyticsPage() {
                         colorClass = "text-[#bf360c] bg-[#fff5f2] border-[#ffab91]"; // Positive (Sakura)
                     } else if (insight.type === "warning") {
                         Icon = AlertCircle;
-                        colorClass = "text-[#e65100] bg-[#fff8e1] border-[#ffe082]"; // Warning (Amber)
+                        colorClass = "text-[#e65100] dark:text-[#ffb74d] bg-[#fff8e1] dark:bg-[#3e2723]/30 border-[#ffe082] dark:border-[#ff8a65]/50"; // Warning (Amber)
                     }
 
                     return (
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-[#5d4037] ml-12">{insight.description}</p>
+                                <p className="text-[#5d4037] dark:text-[#e4d8cd] ml-12">{insight.description}</p>
                             </CardContent>
                         </Card>
                     );
@@ -107,7 +107,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Detail Riwayat */}
-            <h2 className="text-2xl font-bold mt-12 mb-4">Riwayat Eksekusi (Log)</h2>
+            <h2 className="text-2xl font-bold mt-12 mb-4 text-[#5d4037] dark:text-[#e4d8cd]">Riwayat Eksekusi (Log)</h2>
             <Card>
                 <CardContent className="p-0">
                     {executionLogs.length === 0 ? (

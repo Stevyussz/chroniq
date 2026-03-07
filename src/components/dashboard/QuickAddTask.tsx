@@ -133,7 +133,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                         <div className="w-full md:w-40">
                             <label className="text-sm font-medium mb-1 block text-[#8d6e63]">Kategori</label>
                             <select
-                                className="flex h-10 w-full rounded-md border border-white/50 bg-white/60 backdrop-blur-sm px-3 py-2 text-sm text-[#5d4037]"
+                                className="flex h-10 w-full rounded-md border border-white/50 dark:border-white/10 bg-white/60 dark:bg-[#1e1e24]/60 backdrop-blur-sm px-3 py-2 text-sm text-[#5d4037] dark:text-[#e4d8cd] transition-colors"
                                 value={quickTaskCategory}
                                 onChange={e => setQuickTaskCategory(e.target.value)}
                             >

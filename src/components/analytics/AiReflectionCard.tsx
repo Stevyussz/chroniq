@@ -110,9 +110,9 @@ export function AiReflectionCard() {
                     </Button>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white/80 shadow-sm relative">
+                <div className="bg-white/60 dark:bg-[#2d2d35]/60 backdrop-blur-md rounded-2xl p-5 border border-white/80 dark:border-white/10 shadow-sm relative transition-colors">
                     {/* Quotation Marks Decoration */}
-                    <div className="absolute -top-3 -left-2 text-6xl text-[#ffab91] opacity-20 font-serif leading-none pointer-events-none">&quot;</div>
+                    <div className="absolute -top-3 -left-2 text-6xl text-[#ffab91] dark:text-[#ff8a65] opacity-20 font-serif leading-none pointer-events-none">&quot;</div>
 
                     {isLoading && !reflection ? (
                         <div className="space-y-3 relative z-10">
@@ -121,17 +121,17 @@ export function AiReflectionCard() {
                             <div className="h-4 bg-[#ffccbc]/40 rounded-full animate-pulse w-2/3"></div>
                         </div>
                     ) : (
-                        <div className="text-sm md:text-base text-[#5d4037] leading-relaxed whitespace-pre-wrap font-medium relative z-10">
+                        <div className="text-sm md:text-base text-[#5d4037] dark:text-[#e4d8cd] leading-relaxed whitespace-pre-wrap font-medium relative z-10">
                             {reflection}
                         </div>
                     )}
                 </div>
 
                 {!isLoading && (
-                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold text-[#a1887f] uppercase tracking-wide">
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold text-[#a1887f] dark:text-[#a19d9b] uppercase tracking-wide">
                         <div className="flex items-center gap-2">
-                            <span className="bg-[#fffdf5] px-2.5 py-1 rounded-md border border-[#efebe9]">Chroniq Lv. {level}</span>
-                            <span className="bg-[#fffdf5] px-2.5 py-1 rounded-md border border-[#efebe9]">{exp} EXP</span>
+                            <span className="bg-[#fffdf5] dark:bg-[#1e1e24] px-2.5 py-1 rounded-md border border-[#efebe9] dark:border-white/10">Chroniq Lv. {level}</span>
+                            <span className="bg-[#fffdf5] dark:bg-[#1e1e24] px-2.5 py-1 rounded-md border border-[#efebe9] dark:border-white/10">{exp} EXP</span>
                         </div>
                         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 text-right">
                             <span>Siklus Data: {Math.min(executionLogs.length, 30)} Log Terakhir</span>
