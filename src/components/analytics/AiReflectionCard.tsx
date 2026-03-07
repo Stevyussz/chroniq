@@ -72,9 +72,9 @@ export function AiReflectionCard() {
     };
 
     return (
-        <Card className="bg-gradient-to-br from-[#fffbfa] to-[#fff5f2] border-2 border-[#ffab91]/50 shadow-md shadow-[#ffab91]/10 overflow-hidden mb-8 relative rounded-3xl">
+        <Card className="bg-gradient-to-br from-[#fffbfa] dark:from-[#1e1e24] to-[#fff5f2] dark:to-[#2d2d35] border-2 border-[#ffab91]/50 dark:border-[#ff8a65]/20 shadow-md shadow-[#ffab91]/10 dark:shadow-none overflow-hidden mb-8 relative rounded-3xl transition-colors">
             {/* Decorative Gradient Blob */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#ffab91]/20 to-transparent blur-3xl pointer-events-none rounded-bl-full"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#ffab91]/20 dark:from-[#ff8a65]/10 to-transparent blur-3xl pointer-events-none rounded-bl-full transition-colors"></div>
 
             <CardContent className="p-6 md:p-8 relative z-10">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
@@ -84,18 +84,18 @@ export function AiReflectionCard() {
                             {isLoading ? <Loader2 className="w-7 h-7 text-white animate-spin drop-shadow-sm" /> : <Image src="/icon.png" alt="Chroniq Logo" width={32} height={32} className="drop-shadow-sm group-hover:scale-110 transition-transform" />}
                         </div>
                         <div>
-                            <h3 className="text-xl md:text-2xl font-black text-[#8d6e63] flex items-center gap-2 mb-1 tracking-tight">
-                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] to-[#f57c00]">Chroniq</span> AI Insight
-                                <Sparkles className="w-5 h-5 text-[#ffab91] animate-pulse" />
+                            <h3 className="text-xl md:text-2xl font-black text-[#8d6e63] dark:text-[#e4d8cd] flex items-center gap-2 mb-1 tracking-tight transition-colors">
+                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] dark:from-[#ffb74d] to-[#f57c00] dark:to-[#ff8a65]">Chroniq</span> AI Insight
+                                <Sparkles className="w-5 h-5 text-[#ffab91] dark:text-[#ff8a65] animate-pulse" />
                             </h3>
-                            <p className="text-xs font-bold text-[#ff8a65] uppercase tracking-wider">Weekly Reflection Protocol</p>
+                            <p className="text-xs font-bold text-[#ff8a65] dark:text-[#ffab91] uppercase tracking-wider transition-colors">Weekly Reflection Protocol</p>
                         </div>
                     </div>
 
                     <Button
                         onClick={handleManualRegenerate}
                         disabled={isLoading || executionLogs.length < 3}
-                        className="bg-white/60 backdrop-blur-sm text-[#ff8a65] hover:bg-[#fff5f2] hover:text-[#e64a19] border border-[#ffccbc] rounded-xl self-start text-xs font-semibold px-4 h-9 shadow-sm"
+                        className="bg-white/60 dark:bg-[#1e1e24]/60 backdrop-blur-sm text-[#ff8a65] dark:text-[#ffab91] hover:bg-[#fff5f2] dark:hover:bg-[#ff8a65]/20 hover:text-[#e64a19] dark:hover:text-[#ffccbc] border border-[#ffccbc] dark:border-[#ff8a65]/30 rounded-xl self-start text-xs font-semibold px-4 h-9 shadow-sm transition-colors"
                         variant="outline"
                     >
                         {isLoading ? (

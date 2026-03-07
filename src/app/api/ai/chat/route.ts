@@ -59,19 +59,34 @@ Selalu optimis bahwa human error itu wajar. Gunakan filosofi: "Sistem yang baik 
         });
 
         // The last message is conceptually the prompt, but we already have history.
-        // We will just send a dummy string "Lanjut" if the last message is in history,
-        // OR better yet, we pop the last message from history and send it as the prompt.
         const userMessages = messages.filter((m: any) => m.role === 'user');
         const lastUserPrompt = userMessages[userMessages.length - 1]?.content || "Halo Chroniq!";
 
-        // Remove the last user message from the history array so we can send it explicitly
-        const historyWithoutLast = messages.slice(0, messages.length - 1).map((m: any) => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: m.content }]
-        }));
+        // Ensure history strictly alternates and starts with 'user'
+        const rawHistory = messages.slice(0, messages.length - 1);
+        const formattedHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+        let expectedRole: "user" | "model" = 'user';
+
+        for (const msg of rawHistory) {
+            const role = msg.role === 'user' ? 'user' : 'model';
+
+            if (role === expectedRole) {
+                formattedHistory.push({
+                    role,
+                    parts: [{ text: msg.content }]
+                });
+                expectedRole = expectedRole === 'user' ? 'model' : 'user';
+            } else if (formattedHistory.length > 0) {
+                // If same role consecutively, merge them
+                formattedHistory[formattedHistory.length - 1].parts[0].text += '\n\n' + msg.content;
+            } else if (role === 'model') {
+                // Skip model if it's the very first message because history MUST start with user
+                continue;
+            }
+        }
 
         const chatSession = model.startChat({
-            history: historyWithoutLast
+            history: formattedHistory
         });
 
         const result = await chatSession.sendMessage(lastUserPrompt);
