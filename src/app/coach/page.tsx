@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePoeStore } from "@/store/useStore";
 import { useScheduleManager } from "@/hooks/useScheduleManager";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface ChatMessage {
     id: string;
@@ -25,6 +26,18 @@ export default function CoachPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { level, exp, activities, currentSchedule, addActivity, energySlots, fixedBlocks, user } = usePoeStore();
     const { handleReoptimize } = useScheduleManager();
+    const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (isClient && !user) {
+            router.push("/onboarding");
+        }
+    }, [isClient, user, router]);
 
     // Auto-scroll
     useEffect(() => {
@@ -124,8 +137,10 @@ export default function CoachPage() {
         }
     };
 
+    if (!isClient || !user) return <div className="min-h-screen flex items-center justify-center text-[#a1887f] font-medium animate-pulse">Memuat Otak Chroniq...</div>;
+
     return (
-        <div className="max-w-4xl mx-auto h-[85vh] flex flex-col pt-4 pb-8">
+        <div className="max-w-4xl mx-auto h-[calc(100vh-6rem)] md:h-[85vh] flex flex-col pt-2 pb-6 px-3 sm:px-6">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -136,8 +151,8 @@ export default function CoachPage() {
                     <Brain className="w-8 h-8 drop-shadow-md z-10" />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#e64a19] to-[#ffa726]">Chroniq AI Coach</h1>
-                    <p className="text-[#a1887f] font-medium text-sm flex items-center gap-1">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#e64a19] to-[#ffa726]">Chroniq AI Coach</h1>
+                    <p className="text-[#a1887f] font-medium text-xs sm:text-sm flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" /> Asisten Perencana Super Cerdas
                     </p>
                 </div>
@@ -161,10 +176,10 @@ export default function CoachPage() {
                                 key={msg.id}
                                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                             >
-                                <div className={`px-5 py-3.5 rounded-2xl max-w-[85%] text-[15px] leading-relaxed relative ${msg.role === "user" ? "bg-gradient-to-br from-[#8d6e63] to-[#795548] text-white rounded-tr-md shadow-md" : "bg-white/80 backdrop-blur-sm border border-white text-[#5d4037] rounded-tl-md shadow-sm"}`}>
+                                <div className={`px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl max-w-[90%] sm:max-w-[85%] text-[14px] sm:text-[15px] leading-relaxed relative ${msg.role === "user" ? "bg-gradient-to-br from-[#8d6e63] to-[#795548] text-white rounded-tr-md shadow-md" : "bg-white/80 backdrop-blur-sm border border-white text-[#5d4037] rounded-tl-md shadow-sm"}`}>
                                     {msg.role === 'model' && (
-                                        <div className="absolute -left-3 -top-3 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] p-1 rounded-full shadow-sm border border-white">
-                                            <Brain className="w-4 h-4 text-white" />
+                                        <div className="absolute -left-2 -top-2 sm:-left-3 sm:-top-3 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] p-1 rounded-full shadow-sm border border-white">
+                                            <Brain className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                                         </div>
                                     )}
                                     <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -189,25 +204,25 @@ export default function CoachPage() {
                 </div>
 
                 {/* Input Tray */}
-                <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/50 relative z-10">
-                    <form onSubmit={handleSend} className="max-w-3xl mx-auto flex items-center gap-3 bg-[#fdfbf7] p-2 rounded-2xl border-2 border-[#efebe9] focus-within:border-[#ffab91] transition-all shadow-inner">
+                <div className="p-3 sm:p-4 bg-white/80 backdrop-blur-md border-t border-white/50 relative z-10 shrink-0">
+                    <form onSubmit={handleSend} className="max-w-3xl mx-auto flex items-center gap-2 sm:gap-3 bg-[#fdfbf7] p-1.5 sm:p-2 rounded-2xl border-2 border-[#efebe9] focus-within:border-[#ffab91] transition-all shadow-inner">
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Contoh: 'Ubah jadwal tidurku jadi jam 10 malam dong' atau 'Tambahin tugas baca buku 30 menit ke jadwal'"
-                            className="flex-1 bg-transparent border-none text-[15px] font-medium focus:outline-none px-4 text-[#5d4037] placeholder:text-[#a1887f]/70 h-12"
+                            placeholder="Contoh: 'Tidurnya diganti jadi jam 10 malam yah'"
+                            className="flex-1 bg-transparent border-none text-[14px] sm:text-[15px] font-medium focus:outline-none px-2 sm:px-4 text-[#5d4037] placeholder:text-[#a1887f]/70 h-10 sm:h-12"
                         />
                         <Button
                             type="submit"
                             disabled={!input.trim() || isThinking}
-                            className="h-12 w-12 rounded-xl bg-gradient-to-tr from-[#e64a19] to-[#ff8a65] hover:shadow-lg text-white shrink-0 disabled:opacity-50 transition-all"
+                            className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-tr from-[#e64a19] to-[#ff8a65] hover:shadow-lg text-white shrink-0 disabled:opacity-50 transition-all"
                         >
-                            <Send className="w-5 h-5" />
+                            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                         </Button>
                     </form>
-                    <div className="text-center mt-3 text-xs text-[#a1887f] font-medium flex justify-center items-center gap-1.5">
-                        <Code className="w-3.5 h-3.5" /> AI terhubung langsung dengan Engine Optimasi Chroniq.
+                    <div className="text-center mt-2.5 text-[10px] sm:text-xs text-[#a1887f] font-medium flex justify-center items-center gap-1.5">
+                        <Code className="w-3.5 h-3.5 hidden sm:block" /> AI terhubung langsung dengan Engine Optimasi Chroniq.
                     </div>
                 </div>
 
