@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, Sparkles, Map } from "lucide-react";
+import { LayoutDashboard, Brain, Map } from "lucide-react";
 import Image from "next/image";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -15,7 +15,7 @@ function cn(...inputs: ClassValue[]) {
 
 const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Setup", href: "/onboarding", icon: Sparkles },
+    { name: "AI Coach", href: "/coach", icon: Brain },
     { name: "Insights", href: "/analytics", icon: Map },
 ];
 

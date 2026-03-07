@@ -4,6 +4,8 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 
+import { Providers } from "@/components/Providers";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const viewport: Viewport = {
@@ -36,10 +38,12 @@ export default function RootLayout({
         <html lang="id">
             <body className={`${inter.className} min-h-screen bg-[#FDFBF7] text-[#4a4a4a] antialiased pb-[max(1rem,env(safe-area-inset-bottom))]`}>
                 <GoogleOAuthProvider clientId={clientId}>
-                    <Navbar />
-                    <main>
-                        {children}
-                    </main>
+                    <Providers>
+                        <Navbar />
+                        <main>
+                            {children}
+                        </main>
+                    </Providers>
                 </GoogleOAuthProvider>
             </body>
         </html>

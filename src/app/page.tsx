@@ -22,7 +22,6 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { TimelineView } from "@/components/dashboard/TimelineView";
 import { GoogleCalendarSync } from "@/components/dashboard/GoogleCalendarSync";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
-import { ChroniqChatbot } from "@/components/dashboard/ChroniqChatbot";
 
 // Custom Hooks for Modular Logic
 import { useExecutionTracker } from "@/hooks/useExecutionTracker";
@@ -240,9 +239,6 @@ export default function Dashboard() {
           </Card>
         </div>
       )}
-
-      {/* Floating AI Coach Chatbot */}
-      <ChroniqChatbot />
 
     </div>
   );
