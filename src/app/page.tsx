@@ -91,7 +91,7 @@ export default function Dashboard() {
   const progressPercent = Math.min(100, Math.round((exp / nextLevelThreshold) * 100));
 
   return (
-    <div className="min-h-screen bg-transparent text-[#4a4a4a] pb-24 selection:bg-[#ffb7b2] selection:text-white">
+    <div className="min-h-screen bg-transparent text-[--foreground] pb-24 selection:bg-[#ffb7b2] dark:selection:bg-[#ff8a65] selection:text-white transition-colors duration-300">
       {/* Background Lofi Audio Element */}
       <audio ref={audioRef} src="https://stream.zeno.fm/f3wvbbqmdg8uv" preload="none" />
 
@@ -116,8 +116,8 @@ export default function Dashboard() {
 
         {/* Burnout Warning Module */}
         {isBurnoutWarning && (
-          <div className="bg-[#ffb7b2]/20 border border-[#ffb7b2]/50 text-[#d9534f] px-4 py-3 rounded-xl flex items-center gap-3 animate-pulse">
-            <AlertCircle className="w-5 h-5" />
+          <div className="bg-[#ffb7b2]/20 dark:bg-[#d9534f]/20 border border-[#ffb7b2]/50 dark:border-[#d9534f]/30 text-[#d9534f] px-4 py-3 rounded-xl flex items-center gap-3 animate-pulse">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <div className="text-sm">
               <span className="font-bold block">Peringatan Kelelahan Sistem (Burnout Risk: {burnoutRisk}%)</span>
               AI mendeteksi penurunan fokus yang drastis. Re-Optimize jadwal Anda sekarang untuk menyisipkan waktu istirahat tambahan.
@@ -203,26 +203,26 @@ export default function Dashboard() {
 
       {/* Data Backup & Export Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 bg-[#4a4a4a]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white/95 border-0 shadow-2xl rounded-3xl overflow-hidden relative">
-            <CardHeader className="bg-gradient-to-r from-[#e2f0cb]/50 to-transparent pb-4 border-b border-[#e2f0cb]/30">
-              <CardTitle className="text-xl font-bold text-[#5c7a46]">Sistem Pengaturan & Data</CardTitle>
-              <CardDescription>Atur sinkronisasi kalender dan backup data Chroniq Anda (State Lokal).</CardDescription>
+        <div className="fixed inset-0 bg-[#4a4a4a]/40 dark:bg-[#1e1e24]/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-colors">
+          <Card className="w-full max-w-md bg-white/95 dark:bg-[#2d2d35]/95 border-0 shadow-2xl rounded-3xl overflow-hidden relative">
+            <CardHeader className="bg-gradient-to-r from-[#e2f0cb]/50 dark:from-[#81c784]/20 to-transparent pb-4 border-b border-[#e2f0cb]/30 dark:border-white/5">
+              <CardTitle className="text-xl font-bold text-[#5c7a46] dark:text-[#a5d6a7]">Sistem Pengaturan & Data</CardTitle>
+              <CardDescription className="dark:text-[--text-muted]">Atur sinkronisasi kalender dan backup data Chroniq Anda (State Lokal).</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
 
               <GoogleCalendarSync />
 
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-[#8b6b61]">Data Portability (Backup)</h3>
+                <h3 className="text-sm font-semibold text-[#8b6b61] dark:text-[#d7ccc8]">Data Portability (Backup)</h3>
                 <div className="flex flex-col gap-3">
-                  <Button onClick={handleExport} variant="outline" className="w-full justify-start border-[#c7ceea] text-[#5569a8] hover:bg-[#c7ceea]/20">
+                  <Button onClick={handleExport} variant="outline" className="w-full justify-start border-[#c7ceea] text-[#5569a8] dark:border-[#5569a8]/50 dark:text-[#c7ceea] hover:bg-[#c7ceea]/20 dark:hover:bg-[#5569a8]/20 transition-colors">
                     <Download className="w-4 h-4 mr-2" />
                     Backup / Export Data (.json)
                   </Button>
                   <div className="relative">
                     <input type="file" accept=".json" onChange={handleImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    <Button variant="outline" className="w-full justify-start border-[#ffb7b2] text-[#d9534f] hover:bg-[#ffb7b2]/20 pointer-events-none">
+                    <Button variant="outline" className="w-full justify-start border-[#ffb7b2] text-[#d9534f] dark:border-[#d9534f]/50 dark:text-[#ffb7b2] hover:bg-[#ffb7b2]/20 dark:hover:bg-[#d9534f]/20 transition-colors pointer-events-none">
                       <Upload className="w-4 h-4 mr-2" />
                       Restore / Import Data
                     </Button>
@@ -231,8 +231,8 @@ export default function Dashboard() {
               </div>
 
             </CardContent>
-            <CardFooter className="pt-2 pb-6 bg-gray-50/50">
-              <Button onClick={() => setShowSettings(false)} className="w-full bg-[#a1887f] hover:bg-[#8b6b61] text-white rounded-xl">
+            <CardFooter className="pt-2 pb-6 bg-gray-50/50 dark:bg-[#1e1e24]/50">
+              <Button onClick={() => setShowSettings(false)} className="w-full bg-[#a1887f] hover:bg-[#8b6b61] dark:bg-[#5d4037] dark:hover:bg-[#8d6e63] text-white rounded-xl transition-colors">
                 Tutup
               </Button>
             </CardFooter>

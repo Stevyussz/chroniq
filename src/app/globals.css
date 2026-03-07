@@ -9,6 +9,8 @@
   --text-muted: #8d6e63;
   /* Lighter brown-gray */
 
+  --border-subtle: #efebe9;
+
   /* POE specific colors */
   --color-energy-peak: #ffab91;
   /* Soft coral/sakura pink */
@@ -20,6 +22,35 @@
   /* Accent color */
   --accent: #ffccbc;
   /* Soft peach */
+
+  /* Texture Background */
+  --texture-dot: #d7ccc8;
+}
+
+.dark {
+  /* Cozy Night Menu Theme */
+  --background: #1e1e24;
+  /* Deep warm charcoal/midnight */
+  --foreground: #e4d8cd;
+  /* Soft starlight beige */
+  --text-muted: #a19d9b;
+  /* Cool faded stone */
+
+  --border-subtle: #2d2d35;
+
+  /* Dark mode maintains identical peak/medium colors for brand consistency, 
+     but softens them slightly for contrast if necessary, or keeps them. */
+  --color-energy-peak: #ff8a65;
+  /* Slightly deeper coral for contrast */
+  --color-energy-medium: #ffd54f;
+  /* Slightly deeper amber */
+  --color-energy-low: #81c784;
+  /* Slightly deeper matcha */
+
+  --accent: #ffab91;
+
+  /* Texture Background */
+  --texture-dot: #3a3a45;
 }
 
 @theme inline {
@@ -33,7 +64,7 @@
   --color-accent: var(--accent);
 }
 
-/* Force light mode body style with subtle diary/notebook pattern */
+/* Force mode body style with subtle diary/notebook pattern */
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -42,6 +73,7 @@ body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Elegant and calm animated background texture */
@@ -53,11 +85,12 @@ body::before {
   width: 200%;
   height: 200%;
   z-index: -1;
-  background-image: radial-gradient(#d7ccc8 2px, transparent 2px);
+  background-image: radial-gradient(var(--texture-dot) 2px, transparent 2px);
   background-size: 32px 32px;
   animation: drift 150s linear infinite;
   opacity: 0.4;
   pointer-events: none;
+  transition: background-image 0.3s ease;
 }
 
 @keyframes drift {
@@ -81,10 +114,10 @@ body::before {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d7ccc8;
+  background: var(--texture-dot);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bcaaa4;
+  background: var(--text-muted);
 }

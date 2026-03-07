@@ -56,13 +56,13 @@ export function ZenModeOverlay({ tracker }: ZenModeOverlayProps) {
     const progressPerc = Math.min((activeTimer / targetSecs) * 100, 100);
 
     return (
-        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-[#121212] via-[#2d211b] to-[#1a110d] flex items-center justify-center animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-[#121212] via-[#2d211b] dark:via-[#1e1e24] to-[#1a110d] dark:to-[#121212] flex items-center justify-center animate-in fade-in duration-500 transition-colors">
             {/* Minimalist Grid Pattern Background */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
             {/* Glowing Pulse Orb */}
             {!isTimerPaused && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] bg-[#ffab91] rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-pulse"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] bg-[#ffab91] dark:bg-[#ff8a65] rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-pulse transition-colors"></div>
             )}
 
             {/* Top Bar Navigation */}
@@ -112,11 +112,11 @@ export function ZenModeOverlay({ tracker }: ZenModeOverlayProps) {
 
                     {/* Timer Text */}
                     <div className="absolute flex flex-col items-center">
-                        <span className={`font-mono text-5xl md:text-7xl font-black tracking-tighter transition-colors duration-500 ${isTimerPaused ? 'text-white/30 truncate' : 'text-white drop-shadow-[0_0_15px_rgba(255,171,145,0.4)]'}`}>
+                        <span className={`font-mono text-5xl md:text-7xl font-black tracking-tighter transition-colors duration-500 ${isTimerPaused ? 'text-white/30 truncate' : 'text-white drop-shadow-[0_0_15px_rgba(255,171,145,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,138,101,0.4)]'}`}>
                             {getFormatTime(activeTimer)}
                         </span>
                         {isTimerPaused && (
-                            <span className="text-[#ffab91] text-sm font-bold tracking-[0.2em] mt-2 uppercase animate-pulse">Paused</span>
+                            <span className="text-[#ffab91] dark:text-[#ff8a65] text-sm font-bold tracking-[0.2em] mt-2 uppercase animate-pulse transition-colors">Paused</span>
                         )}
                     </div>
                 </div>
@@ -136,7 +136,7 @@ export function ZenModeOverlay({ tracker }: ZenModeOverlayProps) {
                     <Button
                         onClick={toggleLofi}
                         variant="ghost"
-                        className={`w-14 h-14 rounded-full border-2 ${isLofiPlaying ? 'bg-[#ffab91]/20 border-[#ffab91] text-[#ffab91] shadow-[0_0_20px_rgba(255,171,145,0.3)] animate-pulse' : 'bg-transparent border-white/10 text-white/50 hover:bg-white/5 hover:text-white/80'}`}
+                        className={`w-14 h-14 rounded-full border-2 transition-all ${isLofiPlaying ? 'bg-[#ffab91]/20 dark:bg-[#ff8a65]/20 border-[#ffab91] dark:border-[#ff8a65] text-[#ffab91] dark:text-[#ff8a65] shadow-[0_0_20px_rgba(255,171,145,0.3)] dark:shadow-[0_0_20px_rgba(255,138,101,0.3)] animate-pulse' : 'bg-transparent border-white/10 text-white/50 hover:bg-white/5 hover:text-white/80'}`}
                     >
                         <Headphones className="w-8 h-8" />
                     </Button>

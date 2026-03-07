@@ -54,10 +54,10 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
 
     return (
         <form onSubmit={handleSubmit} className="relative w-full">
-            <div className={`relative flex items-center w-full transition-all duration-300 rounded-2xl ${isProcessing ? 'ring-4 ring-[#ffccbc] shadow-lg shadow-[#ffccbc]/50 bg-[#fff3e0]/60 backdrop-blur-md' : 'ring-1 ring-white/50 bg-white/50 backdrop-blur-md hover:bg-white/60 hover:shadow-md'
+            <div className={`relative flex items-center w-full transition-all duration-300 rounded-2xl ${isProcessing ? 'ring-4 ring-[#ffccbc] dark:ring-[#ff8a65]/40 shadow-lg shadow-[#ffccbc]/50 dark:shadow-[#ff8a65]/20 bg-[#fff3e0]/60 dark:bg-[#ff8a65]/10 backdrop-blur-md' : 'ring-1 ring-white/50 dark:ring-white/10 bg-white/50 dark:bg-[#1e1e24]/60 backdrop-blur-md hover:bg-white/60 dark:hover:bg-[#2d2d35]/60 hover:shadow-md'
                 }`}>
 
-                <div className="pl-4 pr-2 text-[#ff8a65]">
+                <div className="pl-4 pr-2 text-[#ff8a65] dark:text-[#ffab91] transition-colors">
                     {isProcessing ? (
                         <Sparkles className="w-5 h-5 animate-pulse" />
                     ) : (
@@ -70,7 +70,7 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
                     onChange={(e) => setText(e.target.value)}
                     placeholder={isProcessing ? "Menyusun jadwal dari pikiran Anda..." : "Ngetik di sini aja... (Contoh: Bales email Pak Bos nanti sore prioritas tinggi)"}
                     disabled={isProcessing}
-                    className={`flex-1 border-none shadow-none text-base focus-visible:ring-0 placeholder:text-stone-400 pl-0 bg-transparent ${isProcessing ? 'text-[#e64a19] animate-pulse placeholder:text-[#ffab91]' : 'text-stone-700'}`}
+                    className={`flex-1 border-none shadow-none text-base focus-visible:ring-0 placeholder:text-stone-400 dark:placeholder:text-[#a19d9b] pl-0 bg-transparent transition-colors ${isProcessing ? 'text-[#e64a19] dark:text-[#ffab91] animate-pulse placeholder:text-[#ffab91] dark:placeholder:text-[#ffab91]/70' : 'text-stone-700 dark:text-[#e4d8cd]'}`}
                     autoComplete="off"
                 />
 
@@ -78,15 +78,15 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
                     type="submit"
                     disabled={isProcessing || !text.trim()}
                     variant="ghost"
-                    className={`rounded-r-2xl pr-4 pl-2 h-12 transition-colors ${text.trim() && !isProcessing ? 'text-[#e64a19] hover:bg-[#ffebee] hover:text-[#d84315]' : 'text-stone-300'
+                    className={`rounded-r-2xl pr-4 pl-2 h-12 transition-colors ${text.trim() && !isProcessing ? 'text-[#e64a19] dark:text-[#ffab91] hover:bg-[#ffebee] dark:hover:bg-[#ff8a65]/20 hover:text-[#d84315] dark:hover:text-[#ffccbc]' : 'text-stone-300 dark:text-[#5d4037]'
                         }`}
                 >
                     <Send className="w-5 h-5" />
                 </Button>
             </div>
 
-            <span className="absolute -bottom-6 left-2 text-[11px] text-stone-400 flex items-center gap-1 font-medium">
-                <Sparkles className="w-3 h-3 text-[#ff8a65]" /> Natural Language Powered
+            <span className="absolute -bottom-6 left-2 text-[11px] text-stone-400 dark:text-[#a19d9b] flex items-center gap-1 font-medium transition-colors">
+                <Sparkles className="w-3 h-3 text-[#ff8a65] dark:text-[#ffab91]" /> Natural Language Powered
             </span>
         </form>
     );

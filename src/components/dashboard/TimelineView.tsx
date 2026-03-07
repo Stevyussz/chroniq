@@ -91,14 +91,14 @@ export function TimelineView({
     };
 
     return (
-        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-transparent rounded-3xl overflow-hidden relative">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#ffab91]/80 via-[#ffe082]/80 to-[#a5d6a7]/80 backdrop-blur-md" />
+        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] bg-transparent rounded-3xl overflow-hidden relative transition-shadow">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#ffab91]/80 via-[#ffe082]/80 to-[#a5d6a7]/80 dark:from-[#ff8a65]/80 dark:via-[#ffd54f]/80 dark:to-[#81c784]/80 backdrop-blur-md transition-colors" />
             <CardHeader className="flex flex-row items-center justify-between pb-4 pt-6 px-6 sm:px-8">
-                <CardTitle className="text-xl font-black text-[#5d4037] tracking-tight">Daily Optimized Timeline</CardTitle>
+                <CardTitle className="text-xl font-black text-[#5d4037] dark:text-[#e4d8cd] tracking-tight transition-colors">Daily Optimized Timeline</CardTitle>
                 <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs font-bold bg-[#fff3e0] text-[#ff8a65] border-[#ffccbc] hover:bg-[#ffe0b2] rounded-full px-4 shadow-sm transition-transform hover:scale-105"
+                    className="text-xs font-bold bg-[#fff3e0] dark:bg-[#fff3e0]/10 text-[#ff8a65] dark:text-[#ffab91] border-[#ffccbc] dark:border-[#ff8a65]/30 hover:bg-[#ffe0b2] dark:hover:bg-[#ff8a65]/20 rounded-full px-4 shadow-sm transition-transform hover:scale-105"
                     onClick={() => activeBlockRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
                 >
                     <MapPin className="w-4 h-4 mr-1.5 inline-block" /> Sync to Now
@@ -106,8 +106,8 @@ export function TimelineView({
             </CardHeader>
             <CardContent className="px-4 sm:px-8 pb-8">
                 {currentSchedule.length === 0 ? (
-                    <div className="text-[#a1887f] text-center p-12 bg-white/30 backdrop-blur-sm rounded-2xl border-2 border-dashed border-white/50">
-                        <Leaf className="w-10 h-10 mx-auto mb-3 text-[#ffccbc]" />
+                    <div className="text-[#a1887f] dark:text-[#a19d9b] text-center p-12 bg-white/30 dark:bg-[#2d2d35]/30 backdrop-blur-sm rounded-2xl border-2 border-dashed border-white/50 dark:border-white/10 transition-colors">
+                        <Leaf className="w-10 h-10 mx-auto mb-3 text-[#ffccbc] dark:text-[#ff8a65]" />
                         Belum ada jadwal yang di-generate. Silakan isi form Quick Add atau Onboarding.
                     </div>
                 ) : (
@@ -132,10 +132,10 @@ export function TimelineView({
                                     const isCurrentlyActiveTime = currentMAdjusted >= startM && currentMAdjusted < endM;
 
 
-                                    let energyColor = "bg-white/40 backdrop-blur-sm border-white/50";
-                                    if (block.energy_zone === "peak") energyColor = "border-l-[6px] border-[#ffab91] bg-gradient-to-r from-[#fff5f2]/60 to-white/40 backdrop-blur-sm";
-                                    else if (block.energy_zone === "medium") energyColor = "border-l-[6px] border-[#ffe082] bg-gradient-to-r from-[#fffdf5]/60 to-white/40 backdrop-blur-sm";
-                                    else if (block.energy_zone === "low") energyColor = "border-l-[6px] border-[#a5d6a7] bg-gradient-to-r from-[#f5fbf6]/60 to-white/40 backdrop-blur-sm";
+                                    let energyColor = "bg-white/40 dark:bg-[#1e1e24]/60 backdrop-blur-sm border-white/50 dark:border-white/5";
+                                    if (block.energy_zone === "peak") energyColor = "border-l-[6px] border-[#ffab91] dark:border-[#ff8a65] bg-gradient-to-r from-[#fff5f2]/60 dark:from-[#ff8a65]/10 to-white/40 dark:to-[#1e1e24]/60 backdrop-blur-sm";
+                                    else if (block.energy_zone === "medium") energyColor = "border-l-[6px] border-[#ffe082] dark:border-[#ffd54f] bg-gradient-to-r from-[#fffdf5]/60 dark:from-[#ffd54f]/10 to-white/40 dark:to-[#1e1e24]/60 backdrop-blur-sm";
+                                    else if (block.energy_zone === "low") energyColor = "border-l-[6px] border-[#a5d6a7] dark:border-[#81c784] bg-gradient-to-r from-[#f5fbf6]/60 dark:from-[#81c784]/10 to-white/40 dark:to-[#1e1e24]/60 backdrop-blur-sm";
 
                                     // Checklists Progress Calculation
                                     let checklistCount = 0;
@@ -149,8 +149,8 @@ export function TimelineView({
                                     }
 
                                     const activeClasses = isCurrentlyActiveTime && !isCompleted && !isSkipped
-                                        ? "ring-2 ring-offset-2 ring-[#ffab91] shadow-[0_8px_30px_rgba(255,171,145,0.25)] transform scale-[1.01] sm:scale-[1.02] border-transparent"
-                                        : "shadow-sm border border-l-[6px] border-r border-t border-b hover:shadow-md hover:-translate-y-0.5";
+                                        ? "ring-2 ring-offset-2 ring-offset-transparent ring-[#ffab91] dark:ring-[#ff8a65] shadow-[0_8px_30px_rgba(255,171,145,0.25)] dark:shadow-[0_8px_30px_rgba(255,138,101,0.15)] transform scale-[1.01] sm:scale-[1.02] border-transparent"
+                                        : "shadow-sm border border-l-[6px] border-r border-t border-b hover:shadow-md hover:-translate-y-0.5 dark:border-white/5";
 
                                     return (
                                         <SortableScheduleBlock
@@ -162,25 +162,25 @@ export function TimelineView({
                                             {/* Top Row Info */}
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                                                 <div className="flex-1 flex gap-3">
-                                                    <div className="flex items-center justify-center cursor-grab active:cursor-grabbing text-[#d7ccc8] hover:text-[#ffab91]">
+                                                    <div className="flex items-center justify-center cursor-grab active:cursor-grabbing text-[#d7ccc8] dark:text-[#a19d9b] hover:text-[#ffab91] dark:hover:text-[#ff8a65]">
                                                         <GripVertical className="w-5 h-5 focus:outline-none" />
                                                     </div>
                                                     <div>
                                                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                                                            <span className="font-mono text-xs sm:text-sm font-bold text-[#8d6e63] bg-white/40 backdrop-blur-sm px-2 py-0.5 rounded-md border border-white/50">{block.planned_start} - {block.planned_end}</span>
-                                                            <span className={`text-[10px] uppercase font-bold px-3 py-1 rounded-full tracking-wider ${block.type === 'activity' ? 'bg-[#ffccbc]/80 text-[#bf360c]' : 'bg-white/40 text-[#8d6e63]'}`}>
+                                                            <span className="font-mono text-xs sm:text-sm font-bold text-[#8d6e63] dark:text-[#d7ccc8] bg-white/40 dark:bg-[#2d2d35]/50 backdrop-blur-sm px-2 py-0.5 rounded-md border border-white/50 dark:border-white/10">{block.planned_start} - {block.planned_end}</span>
+                                                            <span className={`text-[10px] uppercase font-bold px-3 py-1 rounded-full tracking-wider ${block.type === 'activity' ? 'bg-[#ffccbc]/80 dark:bg-[#ff8a65]/20 text-[#bf360c] dark:text-[#ffab91]' : 'bg-white/40 dark:bg-[#2d2d35]/50 text-[#8d6e63] dark:text-[#a19d9b]'}`}>
                                                                 {block.type}
                                                             </span>
                                                             {checklistCount > 0 && (
-                                                                <span className="text-[10px] font-bold flex items-center gap-1 bg-white/50 px-2 py-1 rounded-full text-[#8d6e63] border border-white/60">
+                                                                <span className="text-[10px] font-bold flex items-center gap-1 bg-white/50 dark:bg-[#2d2d35]/50 px-2 py-1 rounded-full text-[#8d6e63] dark:text-[#d7ccc8] border border-white/60 dark:border-white/10">
                                                                     <CheckSquare className="w-3 h-3 text-[#ff8a65]" />
                                                                     {completedChecklistCount}/{checklistCount}
                                                                 </span>
                                                             )}
-                                                            {isCompleted && <span className="text-xs text-[#388e3c] font-bold flex items-center gap-1 bg-[#e8f5e9] px-2.5 py-1 rounded-full"><CheckCircle2 className="w-3 h-3" /> Selesai</span>}
-                                                            {isSkipped && <span className="text-xs text-[#d32f2f] font-bold flex items-center gap-1 bg-[#ffebee] px-2.5 py-1 rounded-full"><XCircle className="w-3 h-3" /> Lewati</span>}
+                                                            {isCompleted && <span className="text-xs text-[#388e3c] dark:text-[#81c784] font-bold flex items-center gap-1 bg-[#e8f5e9] dark:bg-[#81c784]/20 px-2.5 py-1 rounded-full"><CheckCircle2 className="w-3 h-3" /> Selesai</span>}
+                                                            {isSkipped && <span className="text-xs text-[#d32f2f] dark:text-[#ff8a80] font-bold flex items-center gap-1 bg-[#ffebee] dark:bg-[#d32f2f]/20 px-2.5 py-1 rounded-full"><XCircle className="w-3 h-3" /> Lewati</span>}
                                                         </div>
-                                                        <div className="font-bold text-[17px] text-[#5d4037] leading-tight mt-1">
+                                                        <div className="font-bold text-[17px] text-[#5d4037] dark:text-[#e4d8cd] leading-tight mt-1 transition-colors">
                                                             {getActName(block.activity_id, block.type)}
                                                         </div>
                                                     </div>
@@ -188,18 +188,18 @@ export function TimelineView({
 
                                                 {!isCompleted && !isSkipped && block.type === "activity" && activeBlockId !== block.id && !evalBlockId && (
                                                     <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
-                                                        <Button size="sm" variant="ghost" className="flex-none text-[#a1887f] hover:text-[#d32f2f] hover:bg-[#ffebee] rounded-xl h-9 px-3" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeleteBlock && onDeleteBlock(block.activity_id)}>
+                                                        <Button size="sm" variant="ghost" className="flex-none text-[#a1887f] dark:text-[#a19d9b] hover:text-[#d32f2f] dark:hover:text-[#ff8a80] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 rounded-xl h-9 px-3 transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeleteBlock && onDeleteBlock(block.activity_id)}>
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
-                                                        <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-[#ef5350] hover:text-[#c62828] hover:bg-[#ffebee] font-bold rounded-xl" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSkip(block.id)}>Skip</Button>
-                                                        <Button size="sm" className="flex-1 sm:flex-none bg-[#ffab91] hover:bg-[#ff8a65] text-white shadow-sm font-bold transition-transform hover:scale-105 rounded-xl h-9 px-4" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleStart(block.id)}>
+                                                        <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-[#ef5350] dark:text-[#ff8a80] hover:text-[#c62828] dark:hover:text-[#d32f2f] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 font-bold rounded-xl transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSkip(block.id)}>Skip</Button>
+                                                        <Button size="sm" className="flex-1 sm:flex-none bg-[#ffab91] dark:bg-[#ff8a65] hover:bg-[#ff8a65] dark:hover:bg-[#ff7043] text-white shadow-sm font-bold transition-transform hover:scale-105 rounded-xl h-9 px-4" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleStart(block.id)}>
                                                             <Play className="w-4 h-4 mr-1.5 fill-current" /> Eksekusi
                                                         </Button>
                                                     </div>
                                                 )}
 
                                                 {activeBlockId === block.id && (
-                                                    <span className="animate-pulse w-full sm:w-auto justify-center text-[#ff8a65] font-extrabold text-sm flex items-center gap-1.5 bg-[#fff3e0] px-5 py-2 rounded-xl border border-[#ffccbc] shadow-inner mt-2 sm:mt-0">
+                                                    <span className="animate-pulse w-full sm:w-auto justify-center text-[#ff8a65] dark:text-[#ffab91] font-extrabold text-sm flex items-center gap-1.5 bg-[#fff3e0] dark:bg-[#ff8a65]/10 px-5 py-2 rounded-xl border border-[#ffccbc] dark:border-[#ff8a65]/30 shadow-inner mt-2 sm:mt-0">
                                                         <AlertCircle className="w-4 h-4" /> SEDANG AKTIF
                                                     </span>
                                                 )}
@@ -235,16 +235,16 @@ export function TimelineView({
                                                                     {chk.is_completed ? (
                                                                         <CheckSquare className="w-4 h-4 text-[#81c784]" />
                                                                     ) : (
-                                                                        <Square className="w-4 h-4 text-[#d7ccc8]" />
+                                                                        <Square className="w-4 h-4 text-[#d7ccc8] dark:text-[#a19d9b]" />
                                                                     )}
-                                                                    <span className={`text-sm font-medium transition-all duration-300 ${chk.is_completed ? 'line-through text-[#aa9a95]' : 'text-[#5d4037]'}`}>
+                                                                    <span className={`text-sm font-medium transition-all duration-300 ${chk.is_completed ? 'line-through text-[#aa9a95] dark:text-[#a19d9b]' : 'text-[#5d4037] dark:text-[#e4d8cd]'}`}>
                                                                         {chk.title}
                                                                     </span>
                                                                 </div>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-[#ef5350] hover:bg-[#ffebee] rounded-md"
+                                                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-[#ef5350] dark:text-[#ff8a80] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 rounded-md"
                                                                     onPointerDown={(e) => e.stopPropagation()}
                                                                     onClick={() => onRemoveChecklist && onRemoveChecklist(block.activity_id, chk.id)}
                                                                 >
@@ -259,7 +259,7 @@ export function TimelineView({
                                                         <input
                                                             type="text"
                                                             placeholder="Tambah sub-tugas (tekan enter)..."
-                                                            className="text-sm bg-white/50 border border-white/80 rounded-lg px-3 py-1.5 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#ffab91]/50 text-[#5d4037] placeholder:text-[#d7ccc8]"
+                                                            className="text-sm bg-white/50 dark:bg-[#1e1e24]/50 border border-white/80 dark:border-white/10 rounded-lg px-3 py-1.5 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#ffab91]/50 text-[#5d4037] dark:text-[#e4d8cd] placeholder:text-[#d7ccc8] dark:placeholder:text-[#a19d9b] transition-colors"
                                                             value={newChecklistTitle[block.activity_id] || ""}
                                                             onChange={(e) => setNewChecklistTitle(prev => ({ ...prev, [block.activity_id]: e.target.value }))}
                                                             onKeyDown={(e) => e.key === 'Enter' && handleAddChecklist(block.activity_id)}
@@ -268,7 +268,7 @@ export function TimelineView({
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="h-8 w-8 p-0 rounded-lg bg-[#ffab91]/20 text-[#e64a19] hover:bg-[#ffab91]/50"
+                                                            className="h-8 w-8 p-0 rounded-lg bg-[#ffab91]/20 dark:bg-[#ff8a65]/20 text-[#e64a19] dark:text-[#ffab91] hover:bg-[#ffab91]/50 dark:hover:bg-[#ff8a65]/40 transition-colors"
                                                             onPointerDown={(e) => e.stopPropagation()}
                                                             onClick={() => handleAddChecklist(block.activity_id)}
                                                         >

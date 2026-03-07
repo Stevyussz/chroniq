@@ -57,10 +57,10 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
         return (
             <Button
                 onClick={() => setIsAiExpanded(true)}
-                className="w-full h-14 bg-white/40 backdrop-blur-md border-2 border-dashed border-[#ffccbc]/80 hover:bg-white/60 hover:border-[#ffab91] text-[#8d6e63] font-bold rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-3"
+                className="w-full h-14 bg-white/40 dark:bg-[#2d2d35]/40 backdrop-blur-md border-2 border-dashed border-[#ffccbc]/80 dark:border-[#ff8a65]/40 hover:bg-white/60 dark:hover:bg-[#2d2d35]/70 hover:border-[#ffab91] dark:hover:border-[#ff8a65] text-[#8d6e63] dark:text-[#a19d9b] hover:text-[#5d4037] dark:hover:text-[#e4d8cd] font-bold rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-3"
                 variant="outline"
             >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ffab91] to-[#ffccbc] text-white flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ffab91] to-[#ffccbc] dark:from-[#ff8a65] dark:to-[#ffccbc] text-white flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform shadow-sm">
                     <Brain className="w-full h-full drop-shadow-sm" />
                 </div>
                 Tambah Tugas Baru dengan AI
@@ -69,23 +69,23 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
     }
 
     return (
-        <Card className="bg-white/40 backdrop-blur-md border-2 border-[#ffab91]/40 shadow-sm relative overflow-visible rounded-3xl animate-in fade-in zoom-in-95 duration-200">
+        <Card className="bg-white/40 dark:bg-[#1e1e24]/40 backdrop-blur-md border-2 border-[#ffab91]/40 dark:border-[#ff8a65]/30 shadow-sm relative overflow-visible rounded-3xl animate-in fade-in zoom-in-95 duration-200 transition-colors">
             {/* Close button mapping for Expanded View */}
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsAiExpanded(false)}
-                className="absolute top-2 right-2 text-[#a1887f] hover:bg-[#fff5f2] rounded-full z-20"
+                className="absolute top-2 right-2 text-[#a1887f] dark:text-[#a19d9b] hover:bg-[#fff5f2] dark:hover:bg-[#ff8a65]/20 rounded-full z-20 transition-colors"
             >
                 <ChevronUp className="w-5 h-5" />
             </Button>
 
             <CardHeader className="pb-3 pt-5 px-6">
-                <CardTitle className="text-lg flex items-center gap-2 text-[#8d6e63]">
+                <CardTitle className="text-lg flex items-center gap-2 text-[#8d6e63] dark:text-[#a19d9b]">
                     <Image src="/icon.png" alt="Chroniq Logo" width={20} height={20} className="w-5 h-5 drop-shadow-sm" />
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] to-[#f57c00] font-black">Chroniq</span> AI Quick Add
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] dark:from-[#ff8a65] to-[#f57c00] dark:to-[#ffb74d] font-black">Chroniq</span> AI Quick Add
                 </CardTitle>
-                <CardDescription className="text-xs">
+                <CardDescription className="text-xs dark:text-[--text-muted]">
                     Ketik apa yang ingin Anda kerjakan dengan bahasa sehari-hari. Chroniq AI akan menerjemahkannya ke dalam jadwal.
                 </CardDescription>
             </CardHeader>

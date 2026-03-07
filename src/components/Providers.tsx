@@ -1,6 +1,7 @@
 "use client";
 
 import { useCloudSync } from "@/hooks/useCloudSync";
+import { ThemeProvider } from "./ThemeProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     // This hook will now run persistently at the root of the app
@@ -8,5 +9,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // and hydrate state from Firebase on fresh logins.
     useCloudSync();
 
-    return <>{children}</>;
+    return (
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            {children}
+        </ThemeProvider>
+    );
 }

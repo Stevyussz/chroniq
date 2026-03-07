@@ -17,31 +17,31 @@ export function AiSplitModal({ isOpen, pendingTask, isLoading, onConfirm, onReje
     if (!isOpen || !pendingTask) return null;
 
     return (
-        <Card className="border-2 border-[#ffab91]/50 shadow-md shadow-[#ffab91]/10 bg-gradient-to-br from-[#fffbfa] to-[#fff5f2] animate-in slide-in-from-top-4 rounded-3xl relative overflow-hidden">
+        <Card className="border-2 border-[#ffab91]/50 dark:border-[#ff8a65]/30 shadow-md shadow-[#ffab91]/10 bg-gradient-to-br from-[#fffbfa] dark:from-[#1e1e24] to-[#fff5f2] dark:to-[#1e1e24] animate-in slide-in-from-top-4 rounded-3xl relative overflow-hidden transition-colors">
             {/* Decorative Gradient Blob */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-[#e64a19]/10 to-transparent blur-2xl pointer-events-none rounded-bl-full"></div>
+            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-[#e64a19]/10 dark:from-[#ff8a65]/5 to-transparent blur-2xl pointer-events-none rounded-bl-full"></div>
 
             <CardHeader className="relative z-10 pb-2">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] text-white rounded-xl flex items-center justify-center shadow-inner">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] dark:from-[#ff8a65] dark:to-[#ffccbc] text-white rounded-xl flex items-center justify-center shadow-inner">
                         <Brain className="w-5 h-5 drop-shadow-sm" />
                     </div>
                     <div>
-                        <CardTitle className="text-xl font-black text-[#8d6e63] flex items-center gap-2">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] to-[#f57c00]">Chroniq</span> AI Intervention
+                        <CardTitle className="text-xl font-black text-[#8d6e63] dark:text-[#a19d9b] flex items-center gap-2">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] dark:from-[#ff8a65] to-[#f57c00] dark:to-[#ffb74d]">Chroniq</span> AI Intervention
                         </CardTitle>
                     </div>
                 </div>
-                <CardDescription className="text-[#8d6e63] font-medium text-sm leading-relaxed mt-2">
-                    Tugas <b className="text-[#bf360c]">&quot;{pendingTask.name}&quot;</b> menuntut fokus selama {pendingTask.target_duration} menit tanpa henti. Berdasarkan riset psikologi kerja, otak manusia rentan mengalami <i>burnout</i> jika dihadapkan pada satu blok melebihi 90 menit.
+                <CardDescription className="text-[#8d6e63] dark:text-[#a19d9b] font-medium text-sm leading-relaxed mt-2 transition-colors">
+                    Tugas <b className="text-[#bf360c] dark:text-[#ffab91]">&quot;{pendingTask.name}&quot;</b> menuntut fokus selama {pendingTask.target_duration} menit tanpa henti. Berdasarkan riset psikologi kerja, otak manusia rentan mengalami <i>burnout</i> jika dihadapkan pada satu blok melebihi 90 menit.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white/80 shadow-sm mx-6 mb-6 relative z-10">
-                    <p className="text-sm mb-3 font-bold text-[#e64a19] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#ffab91] animate-pulse" /> Strategi AI yang direkomendasikan:</p>
+                <div className="bg-white/60 dark:bg-[#2d2d35]/60 backdrop-blur-md rounded-2xl p-5 border border-white/80 dark:border-white/5 shadow-sm mx-6 mb-6 relative z-10 transition-colors">
+                    <p className="text-sm mb-3 font-bold text-[#e64a19] dark:text-[#ffab91] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#ffab91] animate-pulse" /> Strategi AI yang direkomendasikan:</p>
                     <div className="flex flex-col gap-2">
-                        <ul className="list-disc pl-5 text-sm text-[#8d6e63] space-y-2">
-                            <li>Biarkan sistem memotong tugas ini menjadi <b>{Math.ceil(pendingTask.target_duration / 60)} etape sprint</b> (maksimal 60 menit per sesi).</li>
+                        <ul className="list-disc pl-5 text-sm text-[#8d6e63] dark:text-[#a19d9b] space-y-2">
+                            <li>Biarkan sistem memotong tugas ini menjadi <b className="dark:text-[#d7ccc8]">{Math.ceil(pendingTask.target_duration / 60)} etape sprint</b> (maksimal 60 menit per sesi).</li>
                             <li>Ini akan memaksa masuknya blok <i>Deep Work Break</i> (Istirahat Wajib) di sela-sela etape.</li>
                             <li>Secara psikologis, ini menipu otak agar merasa tugas lebih ringan, meningkatkan probabilitas eksekusi hingga 40%.</li>
                         </ul>
@@ -54,7 +54,7 @@ export function AiSplitModal({ isOpen, pendingTask, isLoading, onConfirm, onReje
                                 <span className="flex items-center gap-1.5"><Zap className="w-4 h-4 fill-current" /> Pecah dengan AI & Sebarkan</span>
                             )}
                         </Button>
-                        <Button onClick={onReject} variant="outline" className="border-2 border-[#ffccbc] text-[#bf360c] hover:bg-[#ffebee]/80 rounded-xl font-semibold h-11">
+                        <Button onClick={onReject} variant="outline" className="border-2 border-[#ffccbc] dark:border-[#ff8a65]/50 text-[#bf360c] dark:text-[#ffab91] bg-transparent hover:bg-[#ffebee]/80 dark:hover:bg-[#ff8a65]/10 rounded-xl font-semibold h-11 transition-colors">
                             Tetap Paksa 1 Blok
                         </Button>
                     </div>
