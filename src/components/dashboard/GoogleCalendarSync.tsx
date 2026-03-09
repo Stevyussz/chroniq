@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Check, Loader2, ArrowDownUp, RefreshCw } from "lucide-react";
+import { CalendarDays, Check, Loader2, ArrowDownUp, RefreshCw, Bell, BellOff } from "lucide-react";
 import { usePoeStore } from "@/store/useStore";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useGoogleLogin } from "@react-oauth/google";
 
 export function GoogleCalendarSync() {
-    const { user, addFixedBlock, setGcalToken, gcalToken, autoPushGcal, setAutoPushGcal } = usePoeStore();
+    const { user, addFixedBlock, setGcalToken, gcalToken, autoPushGcal, setAutoPushGcal, pushNotificationsEnabled, setPushNotificationsEnabled } = usePoeStore();
+    const { requestNotificationPermission } = useNotifications();
     const [isLoading, setIsLoading] = useState(false);
 
     const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -140,11 +142,36 @@ export function GoogleCalendarSync() {
                             Auto-Push: {autoPushGcal ? "ON" : "OFF"}
                         </Button>
                     </div>
-                    <p className="text-[10px] text-center text-[#a1887f] leading-tight">
+                    <p className="text-[10px] text-center text-[#a1887f] leading-tight mt-2 mb-2">
                         Jika Auto-Push ON, setiap kali Engine merombak jadwal, blok Chroniq akan otomatis dikirim sebagai acara &quot;Sibuk&quot; ke Kalender Anda.
                     </p>
                 </>
             )}
+
+            <div className="border-t border-[#efebe9] dark:border-[#efebe9]/10 pt-3 mt-1">
+                <Button
+                    onClick={async () => {
+                        if (!pushNotificationsEnabled) {
+                            await requestNotificationPermission();
+                        } else {
+                            // Turn it off manually in the store
+                            setPushNotificationsEnabled(false);
+                        }
+                    }}
+                    variant="outline"
+                    className={`w-full justify-start border border-[#efebe9] ${
+                        pushNotificationsEnabled 
+                        ? 'bg-[#e8f0fe] text-[#1967d2] hover:bg-[#d2e3fc]' 
+                        : 'bg-[#fffdf5] text-[#8d6e63] hover:bg-[#efebe9]'
+                    }`}
+                >
+                    {pushNotificationsEnabled ? <Bell className="w-4 h-4 mr-2" /> : <BellOff className="w-4 h-4 mr-2" />}
+                    Web Push Notif: {pushNotificationsEnabled ? "ON" : "OFF"}
+                </Button>
+                <p className="text-[10px] text-[#a1887f] leading-tight text-center mt-2">
+                    Notifikasi muncul 5 menit sebelum sebuah jadwal dimulai.
+                </p>
+            </div>
         </div>
     );
 }

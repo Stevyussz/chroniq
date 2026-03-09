@@ -19,9 +19,10 @@ interface PoeState {
     isTimerPaused: boolean;
     isZenModeActive: boolean;
 
-    // Google Calendar Sync
+    // Google Calendar & Notifications Sync
     gcalToken: string | null;
     autoPushGcal: boolean;
+    pushNotificationsEnabled: boolean;
 
     // AI Reflection Cache
     aiReflectionText: string | null;
@@ -57,6 +58,7 @@ interface PoeState {
 
     setGcalToken: (token: string | null) => void;
     setAutoPushGcal: (autoPush: boolean) => void;
+    setPushNotificationsEnabled: (enabled: boolean) => void;
 
     // AI Cache Actions
     setAiReflection: (text: string, dateISO: string, suggestedSlots?: EnergySlot[] | null) => void;
@@ -86,6 +88,7 @@ export const usePoeStore = create<PoeState>()(
 
             gcalToken: null,
             autoPushGcal: false,
+            pushNotificationsEnabled: false,
 
             aiReflectionText: null,
             aiReflectionDate: null,
@@ -200,6 +203,7 @@ export const usePoeStore = create<PoeState>()(
 
             setGcalToken: (token) => set({ gcalToken: token }),
             setAutoPushGcal: (autoPush) => set({ autoPushGcal: autoPush }),
+            setPushNotificationsEnabled: (enabled) => set({ pushNotificationsEnabled: enabled }),
 
             setAiReflection: (text, dateISO, suggestedSlots) => set({ 
                 aiReflectionText: text, 
