@@ -26,6 +26,7 @@ interface PoeState {
     // AI Reflection Cache
     aiReflectionText: string | null;
     aiReflectionDate: string | null;
+    aiSuggestedEnergySlots: EnergySlot[] | null;
 
     // Actions
     setUser: (user: User) => void;
@@ -58,7 +59,8 @@ interface PoeState {
     setAutoPushGcal: (autoPush: boolean) => void;
 
     // AI Cache Actions
-    setAiReflection: (text: string, dateISO: string) => void;
+    setAiReflection: (text: string, dateISO: string, suggestedSlots?: EnergySlot[] | null) => void;
+    setAiSuggestedEnergySlots: (slots: EnergySlot[] | null) => void;
 
     resetTimeline: () => void;
     resetAll: () => void;
@@ -87,6 +89,7 @@ export const usePoeStore = create<PoeState>()(
 
             aiReflectionText: null,
             aiReflectionDate: null,
+            aiSuggestedEnergySlots: null,
 
             resetTimeline: () => set({
                 activities: [],
@@ -198,7 +201,12 @@ export const usePoeStore = create<PoeState>()(
             setGcalToken: (token) => set({ gcalToken: token }),
             setAutoPushGcal: (autoPush) => set({ autoPushGcal: autoPush }),
 
-            setAiReflection: (text, dateISO) => set({ aiReflectionText: text, aiReflectionDate: dateISO }),
+            setAiReflection: (text, dateISO, suggestedSlots) => set({ 
+                aiReflectionText: text, 
+                aiReflectionDate: dateISO,
+                ...(suggestedSlots !== undefined && { aiSuggestedEnergySlots: suggestedSlots })
+            }),
+            setAiSuggestedEnergySlots: (slots) => set({ aiSuggestedEnergySlots: slots }),
 
             resetAll: () => set({
                 user: null,

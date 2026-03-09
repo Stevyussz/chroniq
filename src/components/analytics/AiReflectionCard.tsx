@@ -6,8 +6,22 @@ import { Button } from "@/components/ui/button";
 import { usePoeStore } from "@/store/useStore";
 
 export function AiReflectionCard() {
-    const { executionLogs, activities, exp, level, aiReflectionText, aiReflectionDate, setAiReflection } = usePoeStore();
+    const { 
+        executionLogs, 
+        activities, 
+        exp, 
+        level, 
+        aiReflectionText, 
+        aiReflectionDate, 
+        aiSuggestedEnergySlots,
+        energySlots,
+        setAiReflection,
+        setAiSuggestedEnergySlots,
+        setEnergySlots,
+        resetTimeline
+    } = usePoeStore();
     const [reflection, setReflection] = useState<string | null>(aiReflectionText);
+    const [suggestedSlots, setSuggestedSlots] = useState<any[] | null>(aiSuggestedEnergySlots || null);
     const [isLoading, setIsLoading] = useState(false);
 
     const checkAndFetchReflection = async (force: boolean = false) => {
@@ -37,7 +51,8 @@ export function AiReflectionCard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     executionLogs: executionLogs.slice(-30), // Kirim 30 block terakhir 
-                    activities: activities.slice(0, 30)
+                    activities: activities.slice(0, 30),
+                    energySlots: energySlots
                 })
             });
 
@@ -45,11 +60,13 @@ export function AiReflectionCard() {
                 const data = await response.json();
                 if (data.reflectionText) {
                     setReflection(data.reflectionText);
-                    setAiReflection(data.reflectionText, now.toISOString());
+                    setSuggestedSlots(data.suggestedEnergySlots || null);
+                    setAiReflection(data.reflectionText, now.toISOString(), data.suggestedEnergySlots || null);
                 } else {
                     const fallback = "Belum ada insight kuat dari AI minggu ini, terus semangat berprogres!";
                     setReflection(fallback);
-                    setAiReflection(fallback, now.toISOString());
+                    setSuggestedSlots(null);
+                    setAiReflection(fallback, now.toISOString(), null);
                 }
             }
         } catch (error) {
@@ -69,6 +86,14 @@ export function AiReflectionCard() {
 
     const handleManualRegenerate = () => {
         checkAndFetchReflection(true);
+    };
+
+    const handleApplySuggestion = () => {
+        if (!suggestedSlots) return;
+        setEnergySlots(suggestedSlots as any);
+        setAiSuggestedEnergySlots(null); // Clear suggestion after applying
+        setSuggestedSlots(null);
+        resetTimeline(); // Force scheduler to re-run based on new energy map
     };
 
     return (
@@ -126,6 +151,27 @@ export function AiReflectionCard() {
                         </div>
                     )}
                 </div>
+
+                {/* --- AI AUTO TUNING SUGGESTION ALERT --- */}
+                {suggestedSlots && suggestedSlots.length > 0 && !isLoading && (
+                    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#ffe0b2]/50 dark:from-[#ffb74d]/20 to-[#ffccbc]/50 dark:to-[#ff8a65]/20 border border-[#ffb74d]/40 dark:border-[#ff8a65]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
+                        <div className="flex-1">
+                            <h4 className="text-sm font-bold text-[#e65100] dark:text-[#ffb74d] flex items-center gap-2 mb-1">
+                                <Brain className="w-4 h-4" /> Saran Tuning Jam Biologis
+                            </h4>
+                            <p className="text-xs text-[#5d4037] dark:text-[#e4d8cd]">
+                                AI merekomendasikan perubahan jam energi untuk optimisasi otomatis. 
+                                Peak: {suggestedSlots.find(s => s.energy_level === 'peak')?.start_time} - {suggestedSlots.find(s => s.energy_level === 'peak')?.end_time}.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={handleApplySuggestion}
+                            className="w-full md:w-auto bg-[#ff8a65] hover:bg-[#e64a19] text-white shadow-md rounded-xl text-xs font-bold px-5 h-9"
+                        >
+                            <Sparkles className="w-3.5 h-3.5 mr-2" /> Terapkan Saran AI
+                        </Button>
+                    </div>
+                )}
 
                 {!isLoading && (
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold text-[#a1887f] dark:text-[#a19d9b] uppercase tracking-wide">

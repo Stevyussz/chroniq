@@ -64,7 +64,8 @@ export function useCloudSync() {
                     fixedBlocks: store.fixedBlocks,
                     energySlots: store.energySlots,
                     aiReflectionText: store.aiReflectionText,
-                    aiReflectionDate: store.aiReflectionDate
+                    aiReflectionDate: store.aiReflectionDate,
+                    aiSuggestedEnergySlots: store.aiSuggestedEnergySlots
                 };
 
                 await setDoc(docRef, {
