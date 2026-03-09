@@ -39,13 +39,14 @@ Jika ada tindakan yang diminta pengguna yang berhubungan dengan jadwal/aplikasi,
     "name": "Nama Tugas",
     "duration": 60,
     "priority": 3,
-    "category": "Fokus Tinggi (Analitis)"
+    "category": "Fokus Tinggi (Analitis)",
+    "preferred_start": "20:00"
   }
 }
 \`\`\`
 
 Aksi yang saat ini didukung oleh sistem frontend:
-- "ADD_TASK" : Memasukkan tugas baru ke dalam antrean/jadwal. Parameter wajib payload: name (string), duration (angka dalam menit), priority (angka 1-5), category (string).
+- "ADD_TASK" : Memasukkan tugas baru ke dalam antrean/jadwal. Parameter wajib payload: name (string), duration (angka dalam menit), priority (angka 1-5), category (string). Parameter opsional: preferred_start (string dalam format "HH:mm" misalnya "20:00" JIKA user secara eksplisit meminta tugas dikerjakan pada jam tertentu atau waktu tertentu seperti pagi, siang, atau malam).
 - "DELETE_TASK" : Menghapus tugas dari antrean/jadwal berdasarkan nama. Parameter wajib payload: name (string yang mendekati nama tugas yang ingin dihapus).
 - "REOPTIMIZE" : Meminta sistem menghitung ulang dan menyusun ulang jadwal sekarang. Payload kosong: {}.
 

@@ -115,7 +115,8 @@ export default function CoachPage() {
                             name: payload.name,
                             target_duration: payload.duration,
                             priority: payload.priority,
-                            category: payload.category
+                            category: payload.category,
+                            ...(payload.preferred_start && { preferred_start: payload.preferred_start })
                         });
                         actionParsed = true;
                     }
