@@ -15,6 +15,7 @@ export function useExecutionTracker() {
         stopTimer,
         addExecutionLog,
         addExp,
+        updateStreak,
         isZenModeActive,
         setZenMode
     } = usePoeStore();
@@ -38,7 +39,9 @@ export function useExecutionTracker() {
         const handleVisibilityChange = () => {
             if (document.hidden && isZenModeActive && !isTimerPaused) {
                 // User switched tabs while in Zen Mode!
-                // Penalty: deduct 5 exp or count as distraction
+                // BUG FIX #12: addExp(-5) could drive EXP negative, breaking level calculation.
+                // addExp in the store now guards against negative EXP via Math.max(0, ...).
+                // We still call it here, but the guard is in the store.
                 addExp(-5);
                 setDistractions(prev => prev + 1);
 
@@ -56,29 +59,38 @@ export function useExecutionTracker() {
     }, [isZenModeActive, isTimerPaused, addExp]);
 
     // Timer Sync Logic
+    // BUG FIX #9: Previously, `elapsedSeconds` was captured in the closure at the time
+    // the effect ran. When the user paused and resumed, `elapsedSeconds` was stale —
+    // the interval kept using the old value from before the pause. Fix: read the latest
+    // elapsedSeconds from the store directly inside the interval callback via getState(),
+    // bypassing the stale closure entirely.
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
         if (activeBlockId && !isTimerPaused && timerStartedAtISO) {
-            // Sync loop
+            const startMs = new Date(timerStartedAtISO).getTime();
+
             interval = setInterval(() => {
-                const now = new Date().getTime();
-                const start = new Date(timerStartedAtISO).getTime();
-                const diffSeconds = Math.floor((now - start) / 1000);
-                const totalElapsed = elapsedSeconds + diffSeconds;
+                const now = Date.now();
+                const diffSeconds = Math.floor((now - startMs) / 1000);
+                // Read fresh elapsedSeconds from store to avoid stale closure
+                const freshElapsed = usePoeStore.getState().elapsedSeconds;
+                const totalElapsed = freshElapsed + diffSeconds;
 
                 setActiveTimer(totalElapsed);
 
                 // Check for completion target
-                const activeBlock = currentSchedule.find((b) => b.id === activeBlockId);
+                const state = usePoeStore.getState();
+                const activeBlock = state.currentSchedule.find((b) => b.id === activeBlockId);
                 if (activeBlock) {
                     let targetMins = 30; // default
                     if (activeBlock.type === "activity") {
-                        const act = activities.find((a) => a.id === activeBlock.activity_id);
+                        const act = state.activities.find((a) => a.id === activeBlock.activity_id);
                         if (act) targetMins = act.target_duration;
                     } else if (activeBlock.type === "break") targetMins = 15;
 
                     const targetSecs = targetMins * 60;
-                    if (totalElapsed === targetSecs) {
+                    // Only fire the chime once (when totalElapsed crosses the threshold)
+                    if (totalElapsed >= targetSecs && totalElapsed - 1 < targetSecs) {
                         playZenChime();
                         sendBrowserNotification(
                             "Waktu Habis!",
@@ -99,9 +111,10 @@ export function useExecutionTracker() {
         activeBlockId,
         isTimerPaused,
         timerStartedAtISO,
-        elapsedSeconds,
-        currentSchedule,
-        activities,
+        // BUG FIX #9: Removed `elapsedSeconds`, `currentSchedule`, `activities` from deps.
+        // These caused the interval to be torn down and rebuilt on every tick/log update,
+        // wasting resources and causing edge-case timer drift. We now read fresh values
+        // from the store directly inside the callback.
     ]);
 
     const handleStart = (blockId: string) => {
@@ -153,9 +166,25 @@ export function useExecutionTracker() {
 
         const loggedDuration = Math.round(activeTimer / 60) || 1; // min 1 min
 
-        // RPG Logic
-        const gainedExp = Math.round(loggedDuration * (focusScore / 3));
+        // RPG Logic — SCIENCE FIX #5: Self-Determination Theory (Deci & Ryan, 1985)
+        // & Flow State research (Csikszentmihalyi)
+        //
+        // OLD formula: duration × (focusScore / 3)
+        // → Focus 1 = 0.33× EXP, Focus 3 = 1.0× EXP, Focus 5 = 1.67× EXP
+        // → The reward differential is only 5× between worst and best focus
+        //
+        // NEW formula: duration × (focusScore/5)² × distractionModifier
+        // → Focus 1 = 0.04× EXP, Focus 3 = 0.36× EXP, Focus 5 = 1.0× EXP
+        // → The reward differential is now 25× — strongly incentivizing deep focus
+        // → Distraction modifier: each distraction linearly reduces EXP (attention residue penalty)
+        //
+        // This design creates intrinsic motivation for QUALITY over QUANTITY,
+        // which is the hallmark of effective gamification (Deci & Ryan, 1985).
+        const focusMultiplier = Math.pow(focusScore / 5, 2); // Exponential quality reward
+        const distractionModifier = Math.max(0.3, 1 - (distractions * 0.15)); // Each distraction = -15% EXP, floor at 30%
+        const gainedExp = Math.round(loggedDuration * focusMultiplier * distractionModifier);
         addExp(gainedExp);
+        updateStreak(); // Habit Science: update daily streak on task completion
 
         addExecutionLog({
             id: `log-${Date.now()}`,
@@ -197,6 +226,6 @@ export function useExecutionTracker() {
         handleComplete,
         handleSkip,
         submitEval,
-        setShowConfetti // Exported just in case
+        setShowConfetti
     };
 }

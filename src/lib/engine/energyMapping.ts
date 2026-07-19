@@ -18,6 +18,8 @@ export function getRecommendedZone(priority: number): EnergyZone {
  * This is a simplified mapper assuming EnergySlots cover the whole day or default to Medium.
  */
 export function getZoneAtMinute(minute: number, energySlots: EnergySlot[]): EnergyZone {
+    let resolvedZone: EnergyZone = "medium"; // default fallback
+
     for (const slot of energySlots) {
         const start = timeToMinutes(slot.start_time);
         let end = timeToMinutes(slot.end_time);
@@ -27,8 +29,19 @@ export function getZoneAtMinute(minute: number, energySlots: EnergySlot[]): Ener
         const checkMinute = (minute < start && start > 12 * 60) ? minute + 24 * 60 : minute;
 
         if (checkMinute >= start && checkMinute < end) {
-            return slot.energy_level;
+            resolvedZone = slot.energy_level;
+            break;
         }
     }
-    return "medium"; // default fallback
+
+    // SCIENCE FIX #4: Post-Lunch Dip Protection (Tietzel & Lack, 2001)
+    // Universal circadian dip occurs between 13:00 and 15:00 (780 - 900 minutes)
+    // If a zone is "peak" during this time, we downgrade it to "medium" to protect against
+    // cognitive overload during the biological slump.
+    const normalizedMinute = minute % (24 * 60);
+    if (normalizedMinute >= 780 && normalizedMinute <= 900 && resolvedZone === "peak") {
+        resolvedZone = "medium";
+    }
+
+    return resolvedZone;
 }

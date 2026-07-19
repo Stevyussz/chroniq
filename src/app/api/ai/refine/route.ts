@@ -16,6 +16,8 @@ export async function POST(req: Request) {
             model: "gemini-2.5-flash-lite",
             generationConfig: {
                 responseMimeType: "application/json",
+                temperature: 0.1,        // Very deterministic — this is a classification/correction task
+                maxOutputTokens: 1500,  // Refine output matches input count (+ potential splits)
                 responseSchema: {
                     type: SchemaType.ARRAY,
                     items: {

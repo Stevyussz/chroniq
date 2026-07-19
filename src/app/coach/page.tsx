@@ -15,20 +15,36 @@ interface ChatMessage {
 }
 
 export default function CoachPage() {
-    const [messages, setMessages] = useState<ChatMessage[]>([{
-        id: "sys-welcome",
-        role: "model",
-        content: "Halo! Aku Chroniq AI Coach. Karena kamu sudah melakukan setup awal, mulai sekarang biarkan aku yang mengatur perubahan jadwal, penyesuaian durasi istirahat, atau menambah tugas baru darimu. Ada yang bisa kubantu hari ini?"
-    }]);
     const [input, setInput] = useState("");
     const [isThinking, setIsThinking] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const { level, exp, activities, currentSchedule, addActivity, removeActivity, energySlots, fixedBlocks, user } = usePoeStore();
+    const {
+        level, exp, activities, currentSchedule, addActivity, removeActivity,
+        energySlots, fixedBlocks, user, chatHistory, addChatMessage, clearChatHistory,
+        currentStreak, longestStreak
+    } = usePoeStore();
     const { handleReoptimize } = useScheduleManager();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     const [cooldown, setCooldown] = useState(0);
+
+    // Chat history: loaded from persisted store, falls back to welcome message on first visit.
+    // FIX: Previously only useState([welcome]), so history was lost on every page refresh.
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+    useEffect(() => {
+        if (chatHistory.length > 0) {
+            setMessages(chatHistory);
+        } else {
+            setMessages([{
+                id: "sys-welcome",
+                role: "model",
+                content: `Halo, ${user?.name || 'Sobat'}! 👋 Aku Chroniq AI Coach. Jadwalmu sudah siap. Mau ubah sesuatu, tambah tugas, atau curhat soal produktivitas? Cerita aja!`
+            }]);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isClient]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -66,15 +82,17 @@ export default function CoachPage() {
         };
 
         setMessages(prev => [...prev, userMsg]);
+        addChatMessage(userMsg); // Persist to store
         setInput("");
         setIsThinking(true);
 
         try {
-            // Include enough context so the bot can accurately modify routines and tasks
+            // Rich context for dynamic AI persona adaptation
             const context = {
-                userProfile: user?.name || "User",
                 level,
                 exp,
+                currentStreak,
+                longestStreak,
                 upcomingTasksCount: currentSchedule.filter(b => b.type === 'activity').length,
                 pendingActivitiesCount: activities.length,
                 energyZones: energySlots.map(e => `${e.energy_level} (${e.start_time}-${e.end_time})`).join(", "),
@@ -140,11 +158,13 @@ export default function CoachPage() {
 
             const cleanReply = aiReplyText.replace(jsonBlockRegex, "").trim();
 
-            setMessages(prev => [...prev, {
+            const aiMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: "model",
                 content: cleanReply + (actionParsed ? "\n\n📍 *(Tindakan sudah otomatis dieksekusi)*" : "")
-            }]);
+            };
+            setMessages(prev => [...prev, aiMsg]);
+            addChatMessage(aiMsg); // Persist to store
 
         } catch (error: any) {
             console.error("Chat error", error);

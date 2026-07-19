@@ -3,18 +3,34 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+/**
+ * AI Natural Language Parser — Chroniq Engine
+ *
+ * Converts free-form Indonesian text into structured Activity objects.
+ * Research basis:
+ * - Cognitive Load Theory (Sweller, 1988): minimize friction at task input
+ * - Implementation Intentions (Gollwitzer, 1999): capture when/where details if mentioned
+ * - Parkinson's Law: cap durations to prevent scope creep
+ */
 export async function POST(req: Request) {
     try {
-        const { text } = await req.json();
+        const { text, userContext } = await req.json();
 
         if (!text || typeof text !== 'string') {
             return NextResponse.json({ error: 'Missing or invalid text input.' }, { status: 400 });
         }
 
+        // Inject user's wake time for smarter time anchoring
+        const wakeTime = userContext?.wakeUpTime || '07:00';
+        const currentHour = new Date().getHours();
+        const timeOfDay = currentHour < 12 ? 'pagi' : currentHour < 15 ? 'siang' : currentHour < 18 ? 'sore' : 'malam';
+
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash-lite",
             generationConfig: {
                 responseMimeType: "application/json",
+                temperature: 0.2,       // Deterministic structured output, no creativity needed
+                maxOutputTokens: 512,  // 5 task objects max ≈ 200-300 tokens; cap for safety
                 responseSchema: {
                     type: SchemaType.ARRAY,
                     items: {
@@ -22,23 +38,23 @@ export async function POST(req: Request) {
                         properties: {
                             name: {
                                 type: SchemaType.STRING,
-                                description: "Nama tugas yang spesifik dan konkrit (Bahasa Indonesia)"
+                                description: "Nama tugas yang spesifik, actionable, dan konkrit (Bahasa Indonesia). Bukan generik. Contoh BAIK: 'Review bab 3 Statistik', 'Balas email klien Andi'. Contoh BURUK: 'Belajar', 'Kerja'."
                             },
                             target_duration: {
                                 type: SchemaType.INTEGER,
-                                description: "Estimasi durasi waktu yang logis dalam menit. Jika tidak disebutkan, tebak durasi umum yang wajar."
+                                description: "Estimasi durasi realistis dalam menit. Batas MAKSIMAL per satu tugas adalah 90 menit (ultradian cycle). Jika user menyebut durasi > 90 menit, kembalikan sebagai task terpisah. Jika tidak disebutkan, tebak berdasarkan jenis tugas: email = 15-20, belajar materi = 45-60, presentasi/laporan = 60-90, olahraga = 30-45."
                             },
                             priority: {
                                 type: SchemaType.INTEGER,
-                                description: "Angka 1-5. Tingkat prioritas (1: Rendah, 5: Sangat Tinggi/Kritis). Tebak dari nada atau kata kunci."
+                                description: "Angka 1-5. Deteksi dari kata kunci: 'urgent/deadline/mati-matian/besok ujian' = 5, 'penting' = 4, 'biasa' = 3, 'nanti/kalau sempat' = 2, 'opsional' = 1. Tebak dari konteks jika tidak disebut."
                             },
                             category: {
                                 type: SchemaType.STRING,
-                                description: "Pilih salah satu paling cocok: 'Fokus Tinggi (Analitis)', 'Kreativitas (Desain/Nulis)', 'Tugas Ringan (Email/Kord)', 'Fisik (Beres-beres)', 'Belajar/Membaca', 'Ad-Hoc (Dadakan)'. Default: 'Ad-Hoc (Dadakan)'"
+                                description: "Pilih SATU yang paling sesuai: 'Fokus Tinggi (Analitis)' untuk coding/matematika/analisis, 'Kreativitas (Desain/Nulis)' untuk menulis/desain/brainstorm, 'Tugas Ringan (Email/Kord)' untuk email/admin/koordinasi, 'Fisik (Beres-beres)' untuk olahraga/bersih-bersih/memasak, 'Belajar/Membaca' untuk membaca/review materi/latihan soal, 'Ad-Hoc (Dadakan)' untuk tugas mendadak/tidak terklasifikasi."
                             },
                             preferred_start: {
                                 type: SchemaType.STRING,
-                                description: "Opsional. Jika user menyebutkan jam/waktu spesifik (misal 'jam 2 siang', '14:30'), gunakan format 24-jam 'HH:mm' (misal '14:00'). Kosongkan jika tidak ada permintaan waktu khusus."
+                                description: `OPSIONAL. Format HH:mm 24 jam. Isi HANYA jika user eksplisit menyebut waktu (mis: 'jam 2 siang'='14:00', 'malam'='19:00', 'pagi'='08:00'). User bangun jam ${wakeTime}, jadi 'pagi' relatif ke waktu bangunnya. Kosongkan jika tidak ada petunjuk waktu.`
                             }
                         },
                         required: ["name", "target_duration", "priority", "category"]
@@ -48,23 +64,33 @@ export async function POST(req: Request) {
         });
 
         const prompt = `
-Anda adalah Chroniq AI, asisten NLP yang membaca input bahasa alami user.
-Tugas Anda: Ekstrak informasi menjadi array berisikan objek tugas yang berstruktur.
+Kamu adalah Chroniq AI Parser — mesin NLP ultra-presisi yang mengekstrak tugas dari teks bebas Bahasa Indonesia.
 
-Aturan Wajib:
-1. Jika kata-kata user menyiratkan beberapa tugas (misal: "mandi, sarapan lalu ngerjain laporan"), kembalikan lebih dari 1 objek di dalam array.
-2. Jika tidak ada durasi secara eksplisit, BERIKAN estimasi durasi terbaik yang wajar dalam menit. (Misal: ujian/belajar berat = 60-120 menit).
-3. Tetapkan 'priority' berdasarkan urgensi yang tersirat (misal "ujian", "segera" = priority 5).
-4. Jika user menyebut "tugas sementara", "sisipan", "dadakan", atau mirip, set category menjadi 'Ad-Hoc (Dadakan)'.
-5. KUNCI WAKTU (High Smart Logic): Jika user meminta serangkaian tugas dimulai pada JAM TERTENTU (misal: "belajar A, B, C mulai jam 14:30"), JANGAN MENCOBA MENGHITUNG WAKTU SATU PERSATU. Cukup isi 'preferred_start' dengan "14:30" (format 24-jam) PADA KETIGA TUGAS TERSEBUT. Mesin akan otomatis mengurutkannya.
-   Contoh:
-   - Tugas A -> preferred_start: "14:30"
-   - Tugas B -> preferred_start: "14:30"
-   - Tugas C -> preferred_start: "14:30"
-6. Kembalikan array JSON solid sesuai Schema yang diberikan.
+KONTEKS PENTING:
+- Sekarang adalah waktu ${timeOfDay} (jam ${currentHour}:00)
+- User bangun jam ${wakeTime}, jadi semua referensi "pagi/siang/malam" relatif ke jam bangunnya
 
-Input dari user:
+ATURAN PARSING (WAJIB DIIKUTI):
+
+1. **MULTI-TASK EXTRACTION**: Jika ada beberapa tugas dalam satu kalimat (kata penghubung: "terus", "lalu", "sama", "dan", "setelah itu", koma), pisahkan menjadi objek terpisah dalam array.
+
+2. **DURASI CAP 90 MENIT**: Tidak ada tugas yang boleh > 90 menit. Jika user menyebut "belajar 3 jam", buat 2 objek: "Belajar [topik] Sesi 1" (90 menit) dan "Belajar [topik] Sesi 2" (90 menit). Ini sesuai ultradian rhythm.
+
+3. **SPECIFICITY RULE**: Nama tugas harus actionable. Tambahkan subjek jika generik:
+   - "belajar" → "Belajar [mata pelajaran yang bisa ditebak dari konteks]"
+   - "nulis" → "Menulis [konten yang relevan]"
+   - "kerja" → tetap "Kerja" jika tidak ada konteks lebih
+
+4. **CHRONOLOGICAL LOGIC**: Jika tugas memiliki urutan alami manusia (mandi sebelum sarapan, sarapan sebelum kuliah), isi preferred_start yang logis berbasis jam bangun user.
+
+5. **WAKTU RELATIF ke JAM SEKARANG**: Jika user bilang "sekarang mau X", set preferred_start ke jam saat ini (${currentHour}:00).
+
+6. **PREFERRED_START MULTI-TASK**: Jika user bilang "mulai jam X terus Y terus Z", set preferred_start = X untuk SEMUA task tersebut. Engine akan mengatur urutan secara otomatis.
+
+Input user:
 "${text}"
+
+Kembalikan array JSON yang valid. Jangan tambahkan teks apapun di luar JSON.
 `;
 
         const result = await model.generateContent(prompt);
@@ -72,9 +98,17 @@ Input dari user:
 
         try {
             const parsedArray = JSON.parse(textResponse);
+            if (!Array.isArray(parsedArray)) {
+                throw new Error("AI returned non-array JSON");
+            }
             return NextResponse.json({ activities: parsedArray });
         } catch {
-            return NextResponse.json({ error: 'AI did not return valid JSON' }, { status: 500 });
+            // Attempt regex extraction as fallback
+            const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                return NextResponse.json({ activities: JSON.parse(jsonMatch[0]) });
+            }
+            return NextResponse.json({ error: 'AI did not return valid JSON array' }, { status: 500 });
         }
 
     } catch (error: unknown) {

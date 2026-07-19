@@ -29,7 +29,7 @@ import { useScheduleManager } from "@/hooks/useScheduleManager";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, resetTimeline } = usePoeStore();
+  const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, currentStreak, longestStreak, resetTimeline } = usePoeStore();
   const [isClient, setIsClient] = useState(false);
   const { width, height } = useWindowSize();
 
@@ -87,8 +87,15 @@ export default function Dashboard() {
   const isBurnoutWarning = learningAnalysis.isBurnoutWarning;
 
   // Gamification Calcs
-  const nextLevelThreshold = level * 1000;
-  const progressPercent = Math.min(100, Math.round((exp / nextLevelThreshold) * 100));
+  // BUG FIX: Level formula is `level = floor(√(exp/100)) + 1`
+  // Level n requires (n-1)² × 100 EXP to reach. So next level requires n² × 100.
+  // Previous code used `level * 1000` which was completely misaligned with the sqrt formula,
+  // causing the progress bar to only reach ~10% before leveling up.
+  const currentLevelMinExp = (level - 1) * (level - 1) * 100; // EXP floor of current level
+  const nextLevelThreshold = level * level * 100;              // EXP ceiling to reach next level
+  const expInCurrentLevel = exp - currentLevelMinExp;
+  const expRangeForLevel = nextLevelThreshold - currentLevelMinExp;
+  const progressPercent = Math.min(100, Math.round((expInCurrentLevel / expRangeForLevel) * 100));
 
   return (
     <div className="min-h-screen bg-transparent text-[--foreground] pb-24 selection:bg-[#ffb7b2] dark:selection:bg-[#ff8a65] selection:text-white transition-colors duration-300">
@@ -121,6 +128,26 @@ export default function Dashboard() {
             <div className="text-sm">
               <span className="font-bold block">Peringatan Kelelahan Sistem (Burnout Risk: {burnoutRisk}%)</span>
               AI mendeteksi penurunan fokus yang drastis. Re-Optimize jadwal Anda sekarang untuk menyisipkan waktu istirahat tambahan.
+            </div>
+          </div>
+        )}
+
+        {/* Streak Counter — Habit Formation (James Clear) */}
+        {currentStreak > 0 && (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+            currentStreak >= 7
+              ? 'bg-gradient-to-r from-[#fff8e1] to-[#fff3e0] dark:from-[#ffd54f]/10 dark:to-[#ff8a65]/10 border-[#ffe082] dark:border-[#ffd54f]/30'
+              : 'bg-white/40 dark:bg-[#1e1e24]/60 border-white/50 dark:border-white/10'
+          }`}>
+            <span className="text-2xl">{currentStreak >= 30 ? '🔥🔥' : currentStreak >= 7 ? '🔥' : '✨'}</span>
+            <div className="flex-1">
+              <span className="font-bold text-[#5d4037] dark:text-[#e4d8cd] text-sm">
+                {currentStreak} Hari Berturut-turut!
+              </span>
+              <p className="text-xs text-[#a1887f] dark:text-[#a19d9b]">
+                Rekor terbaikmu: {longestStreak} hari · Jangan putus!&nbsp;
+                {currentStreak >= 7 && <span className="text-[#f57f17] font-bold">Luar biasa! 🏆</span>}
+              </p>
             </div>
           </div>
         )}

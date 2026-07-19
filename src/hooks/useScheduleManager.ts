@@ -3,6 +3,7 @@ import { DragEndEvent } from '@dnd-kit/core';
 import { usePoeStore } from "@/store/useStore";
 import { generateSchedule } from "@/lib/engine/optimizer";
 import { allocateTime } from "@/lib/engine/allocation";
+import { calculateFlexibleTime } from "@/lib/engine/constraint";
 import { ScheduleBlock, Activity } from "@/types";
 
 export function useScheduleManager() {
@@ -48,7 +49,10 @@ export function useScheduleManager() {
             const isScheduleOutdated = !isScheduleEmpty && currentSchedule[0].date !== dateStr;
 
             if (isScheduleEmpty || isScheduleOutdated) {
-                let availableFlexMinutes = 14 * 60; // Default 14 hours
+                // BUG FIX #3: Previously hard-coded to 14 * 60 = 840 minutes.
+                // This completely bypassed the constraint engine — the core feature of this app.
+                // Now we correctly call calculateFlexibleTime() with the user's actual data.
+                let availableFlexMinutes = calculateFlexibleTime(user.sleep_hours, fixedBlocks);
                 let isRecoveryDay = false;
                 const now = new Date();
 
@@ -75,24 +79,30 @@ export function useScheduleManager() {
                     availableFlexMinutes = Math.floor(availableFlexMinutes * 0.4); // Only 40% capacity on holidays
                 }
 
+                const currentLogs = usePoeStore.getState().executionLogs;
                 const allocated = allocateTime(activities, availableFlexMinutes);
                 // Pass logs to the new adaptive engine
                 const newSchedule = generateSchedule(
                     dateStr,
                     user.sleep_hours,
-                    "06:00",
+                    user.wake_up_time || "07:00", // Use real wake-up time, fallback to 07:00
                     fixedBlocks,
                     energySlots,
                     allocated,
-                    executionLogs,
-                    currentSchedule
+                    currentLogs,
+                    currentSchedule,
+                    activities
                 );
                 setCurrentSchedule(newSchedule);
             }
         };
 
         setupDailySchedule();
-    }, [user, currentSchedule, activities, fixedBlocks, energySlots, executionLogs, setCurrentSchedule]);
+    // BUG FIX #4: Removed `executionLogs` from deps. Every call to addExecutionLog()
+    // (which fires after completing a task) was triggering this effect, potentially
+    // resetting the schedule mid-session. Schedule generation should only run when
+    // the core setup data changes, not when execution logs are added.
+    }, [user, currentSchedule, activities, fixedBlocks, energySlots, setCurrentSchedule]);
 
     // Auto-scroll to active block when schedule is ready
     useEffect(() => {
@@ -196,15 +206,17 @@ export function useScheduleManager() {
         }
 
         const dateStr = new Date().toISOString().split('T')[0];
-        const allocated = allocateTime(optimizedActivities, 14 * 60);
+        // BUG FIX #3 (same as above): Use the real constraint engine, not a hard-coded value.
+        const flexMinutes = calculateFlexibleTime(user.sleep_hours, fixedBlocks);
+        const allocated = allocateTime(optimizedActivities, flexMinutes);
         const newSchedule = generateSchedule(
             dateStr,
             user.sleep_hours,
-            "06:00",
+            user.wake_up_time || "07:00", // Use real wake-up time, fallback to 07:00
             fixedBlocks,
             energySlots,
             allocated,
-            executionLogs,
+            usePoeStore.getState().executionLogs,
             currentSchedule,
             optimizedActivities // Use newly refined set
         );

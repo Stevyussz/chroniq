@@ -166,8 +166,14 @@ export function generateSchedule(
     // Greedy placement with Deep Work rules
     // Max block is now dynamic based on burnout risk
     const maxBlock = dynamicMaxBlock; // mins
-    const breakDuration = 10; // mins
-    let currentConsecutiveBlocks = 0;
+
+    // SCIENCE FIX #1: Ultradian Rhythm / Basic Rest-Activity Cycle (Kleitman, 1982)
+    // The human brain operates in ~90-minute work cycles before needing recovery.
+    // WRONG approach: break every N blocks (block count is meaningless — 3x15min ≠ 3x90min)
+    // CORRECT approach: track cumulative work MINUTES and break when threshold is reached.
+    const BRAC_THRESHOLD_MINS = 90;  // Ultradian cycle length (Kleitman research)
+    const BREAK_AFTER_BRAC = 20;    // Recovery needed after 90 min deep work (recovery science)
+    let cumulativeWorkMinutes = 0;  // Track total consecutive work time
     let lastPlacedEnd: number | null = null;
 
     for (const activity of activitiesToPlace) {
@@ -241,9 +247,9 @@ export function generateSchedule(
             const chunkStart = chosenGap.start;
             const chunkEnd = chunkStart + chunkDuration;
 
-            // Reset deep work consecutive blocks if a natural gap occurred (brain rested naturally)
+            // Reset cumulative work if there was a natural gap (brain already rested)
             if (lastPlacedEnd !== null && chunkStart > lastPlacedEnd) {
-                currentConsecutiveBlocks = 0;
+                cumulativeWorkMinutes = 0;
             }
 
             schedule.push({
@@ -258,7 +264,7 @@ export function generateSchedule(
             });
 
             remainingToPlace -= chunkDuration;
-            currentConsecutiveBlocks++;
+            cumulativeWorkMinutes += chunkDuration; // Track cumulative work duration
             lastPlacedEnd = chunkEnd;
 
             // Adjust true freeGap
@@ -273,22 +279,31 @@ export function generateSchedule(
                 gap.duration = gap.end - chunkEnd;
             }
 
-            // Deep work break injection
-            if (currentConsecutiveBlocks >= 3 && gap.duration >= breakDuration) {
-                schedule.push({
-                    id: `break-${Date.now()}-${Math.random()}`,
-                    user_id: activity.user_id,
-                    date,
-                    activity_id: "break",
-                    planned_start: minutesToTime(gap.start),
-                    planned_end: minutesToTime(gap.start + breakDuration),
-                    energy_zone: getZoneAtMinute(gap.start, activeEnergySlots),
-                    type: "break"
-                });
-                gap.start += breakDuration;
-                gap.duration -= breakDuration;
-                currentConsecutiveBlocks = 0;
-                lastPlacedEnd = chunkEnd + breakDuration;
+            // SCIENCE FIX #1: Ultradian-based break injection
+            // Inject a break when cumulative work minutes reach the BRAC threshold (90 min).
+            // This is based on Kleitman's Basic Rest-Activity Cycle research, confirmed by
+            // Nathaniel Kleitman (1982) and Peretz Lavie (1985).
+            // Break duration scales with accumulated work:
+            // - 60-90 min accumulated → 20 min recovery (full BRAC recovery)
+            // - < 60 min accumulated → 10 min short break (micro-recovery)
+            if (cumulativeWorkMinutes >= BRAC_THRESHOLD_MINS) {
+                const breakDuration = BREAK_AFTER_BRAC;
+                if (gap.duration >= breakDuration) {
+                    schedule.push({
+                        id: `break-${Date.now()}-${Math.random()}`,
+                        user_id: activity.user_id,
+                        date,
+                        activity_id: "break",
+                        planned_start: minutesToTime(gap.start),
+                        planned_end: minutesToTime(gap.start + breakDuration),
+                        energy_zone: getZoneAtMinute(gap.start, activeEnergySlots),
+                        type: "break"
+                    });
+                    gap.start += breakDuration;
+                    gap.duration -= breakDuration;
+                    lastPlacedEnd = chunkEnd + breakDuration;
+                }
+                cumulativeWorkMinutes = 0; // Reset after break
             }
         }
     }

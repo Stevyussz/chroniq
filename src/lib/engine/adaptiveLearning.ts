@@ -11,6 +11,12 @@ export interface AdaptationAnalysis {
 
 /**
  * Analyzes past execution logs to calculate Burnout Risk and dynamically adjust scheduling rules.
+ *
+ * BUG FIX: Previously, burnout risk was calculated from ALL historical logs ever recorded.
+ * This meant a bad week 3 months ago would permanently inflate the burnout risk forever,
+ * making the adaptive system useless for long-term users.
+ * Fix: Only analyze logs from the past 14 days (2 weeks) for burnout and energy correction.
+ * Categorical learning still uses all logs to build a more robust pattern (needs more data).
  */
 export function analyzeExecutionHistory(
     logs: ExecutionLog[],
@@ -35,11 +41,22 @@ export function analyzeExecutionHistory(
         };
     }
 
-    // 1. Burnout Risk Index Calculation
-    // Factors: consecutive "down" energies, consecutive skipped blocks, poor focus scores
+    // BUG FIX: Filter to only the last 14 days for recency-sensitive metrics.
+    // Using all-time logs made burnout risk accumulate indefinitely and never recover.
+    const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+    const recentLogs = logs.filter(log => {
+        // ExecutionLog IDs are formatted as `log-{timestamp}`, extract timestamp
+        const tsMatch = log.id.match(/log-(\d+)/);
+        if (tsMatch) {
+            return parseInt(tsMatch[1]) >= fourteenDaysAgo;
+        }
+        return true; // If we can't parse, include it conservatively
+    });
+
+    // 1. Burnout Risk Index Calculation (recency-filtered)
     let consecutiveDowns = 0;
 
-    for (const log of logs) {
+    for (const log of recentLogs) {
         if (log.status === "skip") {
             burnoutRiskIndex += 10;
         } else if (log.status === "complete") {
@@ -61,20 +78,16 @@ export function analyzeExecutionHistory(
     const isBurnoutWarning = burnoutRiskIndex >= 70;
 
     // 2. Dynamic Deep Work Duration
-    // If burnout risk is high or recent energy is crashing, shorten blocks
     if (isBurnoutWarning) {
         suggestedMaxBlockDuration = 45; // Force shorter blocks to prevent exhaustion
     } else if (burnoutRiskIndex > 40) {
         suggestedMaxBlockDuration = 60;
     }
 
-    // 3. Energy Correction Loop
-    // Find time slots that are currently "Peak" but consistently yield poor focus/energy
-    // For MVP, we'll do a simplified grouping by hour block (0-24)
+    // 3. Energy Correction Loop (recency-filtered)
     const hourStats = new Map<number, { count: number, totalFocus: number }>();
 
-    // Group logs by hour
-    for (const log of logs) {
+    for (const log of recentLogs) {
         if (log.status !== "complete") continue;
         const block = schedule.find(b => b.id === log.schedule_block_id);
         if (!block) continue;
@@ -96,7 +109,6 @@ export function analyzeExecutionHistory(
         if (stats.count >= 3) { // Require at least 3 occurrences to adjust
             const avgFocus = stats.totalFocus / stats.count;
             if (avgFocus < 3) {
-                // Find and downgrade the overlapping energy slot
                 for (const slot of adjustedEnergySlots) {
                     const startH = Math.floor(timeToMinutes(slot.start_time) / 60);
                     let endH = Math.floor(timeToMinutes(slot.end_time) / 60);
@@ -111,8 +123,7 @@ export function analyzeExecutionHistory(
         }
     }
 
-    // 4. Predictive Categorical Learning
-    // Map: Category -> EnergyZone -> { count, totalFocus }
+    // 4. Predictive Categorical Learning (uses all logs for more robust patterns)
     const catStats: Record<string, Record<string, { count: number, totalFocus: number }>> = {};
 
     for (const log of logs) {

@@ -171,6 +171,12 @@ export function TimelineView({
                                                             <span className={`text-[10px] uppercase font-bold px-3 py-1 rounded-full tracking-wider ${block.type === 'activity' ? 'bg-[#ffccbc]/80 dark:bg-[#ff8a65]/20 text-[#bf360c] dark:text-[#ffab91]' : 'bg-white/40 dark:bg-[#2d2d35]/50 text-[#8d6e63] dark:text-[#a19d9b]'}`}>
                                                                 {block.type}
                                                             </span>
+                                                            {/* SCIENCE FIX #6: 2-Minute Rule / GTD indicator */}
+                                                            {block.type === 'activity' && act && act.target_duration <= 10 && (
+                                                                <span className="text-[10px] font-bold flex items-center gap-1 bg-[#fff8e1] dark:bg-[#fff8e1]/10 px-2 py-1 rounded-full text-[#f57f17] dark:text-[#ffd54f] border border-[#ffe082] dark:border-[#ffd54f]/30" title="Tugas ini sangat singkat (GTD 2-Minute Rule). Pertimbangkan untuk langsung diselesaikan!">
+                                                                    ⚡ Quick Win
+                                                                </span>
+                                                            )}
                                                             {checklistCount > 0 && (
                                                                 <span className="text-[10px] font-bold flex items-center gap-1 bg-white/50 dark:bg-[#2d2d35]/50 px-2 py-1 rounded-full text-[#8d6e63] dark:text-[#d7ccc8] border border-white/60 dark:border-white/10">
                                                                     <CheckSquare className="w-3 h-3 text-[#ff8a65]" />

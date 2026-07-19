@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles, Zap, ChevronDown, ChevronUp, Brain, LogIn, Cloud, ShieldCheck } from "lucide-react";
 import { usePoeStore } from "@/store/useStore";
@@ -25,15 +25,43 @@ export default function OnboardingPage() {
     // Form State
     const [name, setName] = useState("");
     const [sleepHours, setSleepHours] = useState(8);
+    const [wakeUpTime, setWakeUpTime] = useState("07:00"); // More realistic default for Gen Z
 
     const [fixedBlocks, setFixedBlocks] = useState<FixedBlock[]>([]);
     const [newFixed, setNewFixed] = useState({ title: "", start_time: "09:00", end_time: "17:00" });
 
-    const [energySlots, setEnergySlotsLocal] = useState<EnergySlot[]>([
-        { id: "e1", user_id: "user", start_time: "08:00", end_time: "12:00", energy_level: "peak" },
-        { id: "e2", user_id: "user", start_time: "13:00", end_time: "17:00", energy_level: "medium" },
-        { id: "e3", user_id: "user", start_time: "18:00", end_time: "22:00", energy_level: "low" },
-    ]);
+    // SCIENCE FIX #3: Cortisol Awakening Response (CAR) — Clow et al. (2010)
+    // Cortisol (the alertness hormone) rises 50% within 30-45 minutes of waking.
+    // Cognitive peak occurs 2-4 hours after waking.
+    // Formula: Peak Energy = wakeUp + 2h, Medium = wakeUp + 6h, Low = wakeUp + 10h
+    // This means a user who wakes at 10:00 should have Peak from 12:00, NOT from 08:00.
+    const computeDefaultEnergySlots = (wakeTime: string): EnergySlot[] => {
+        const [wh, wm] = wakeTime.split(":").map(Number);
+        const wakeMinutes = wh * 60 + wm;
+
+        const addMinutes = (base: number, add: number): string => {
+            const total = (base + add) % (24 * 60);
+            return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+        };
+
+        // Peak: 2-6 hours after waking (CAR + cognitive peak window)
+        const peakStart = addMinutes(wakeMinutes, 120);   // +2 hours
+        const peakEnd = addMinutes(wakeMinutes, 360);     // +6 hours
+        // Medium: 6-10 hours after waking (post-peak, still functional)
+        const mediumStart = peakEnd;
+        const mediumEnd = addMinutes(wakeMinutes, 600);   // +10 hours
+        // Low: 10+ hours after waking (fatigue sets in)
+        const lowStart = mediumEnd;
+        const lowEnd = addMinutes(wakeMinutes, 840);      // +14 hours (sleep target)
+
+        return [
+            { id: "e1", user_id: "user", start_time: peakStart, end_time: peakEnd, energy_level: "peak" },
+            { id: "e2", user_id: "user", start_time: mediumStart, end_time: mediumEnd, energy_level: "medium" },
+            { id: "e3", user_id: "user", start_time: lowStart, end_time: lowEnd, energy_level: "low" },
+        ];
+    };
+
+    const [energySlots, setEnergySlotsLocal] = useState<EnergySlot[]>(() => computeDefaultEnergySlots("07:00"));
 
     const [activities, setActivities] = useState<Activity[]>([]);
     const [newAct, setNewAct] = useState({ name: "", duration: 30, priority: 3, category: "Fokus Tinggi (Analitis)" });
@@ -43,6 +71,14 @@ export default function OnboardingPage() {
     const [isManualExpanded, setIsManualExpanded] = useState(false);
     const [isAiExpanded, setIsAiExpanded] = useState(false);
     const [isAiProcessing, setIsAiProcessing] = useState(false);
+
+    // SCIENCE FIX #3: Auto-update energy slot defaults when wakeUpTime changes.
+    // This ensures the default slots on Step 3 are always biologically anchored
+    // to the user's actual wake time using the CAR formula.
+    useEffect(() => {
+        setEnergySlotsLocal(computeDefaultEnergySlots(wakeUpTime));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [wakeUpTime]);
 
     const handleNext = () => setStep(s => Math.min(s + 1, 4));
     const handleBack = () => setStep(s => Math.max(s - 1, 0));
@@ -92,6 +128,7 @@ export default function OnboardingPage() {
                 id: "u1",
                 name,
                 sleep_hours: sleepHours,
+                wake_up_time: wakeUpTime,
                 created_at: new Date().toISOString()
             });
             setEnergySlots(energySlots);
@@ -103,7 +140,7 @@ export default function OnboardingPage() {
         } catch (error) {
             console.error("Failed AI optimization, saving raw data: ", error);
             resetAll();
-            setUser({ id: "u1", name, sleep_hours: sleepHours, created_at: new Date().toISOString() });
+            setUser({ id: "u1", name, sleep_hours: sleepHours, wake_up_time: wakeUpTime, created_at: new Date().toISOString() });
             setEnergySlots(energySlots);
             fixedBlocks.forEach(addFixedBlock);
             activities.forEach(addActivity);
@@ -219,7 +256,12 @@ export default function OnboardingPage() {
                                             <Input className="dark:bg-[#25352c]/50 dark:border-white/10 dark:text-[#e4d8cd]" value={name} onChange={e => setName(e.target.value)} placeholder="Misal: John Doe" />
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium mb-1 block">Berapa jam Anda butuh tidur setiap malam?</label>
+                                            <label className="text-sm font-medium mb-1 block">Jam biasa kamu bangun pagi? ☀️</label>
+                                            <Input className="dark:bg-[#25352c]/50 dark:border-white/10 dark:text-[#e4d8cd]" type="time" value={wakeUpTime} onChange={e => setWakeUpTime(e.target.value)} />
+                                            <p className="text-xs text-[#a1887f] dark:text-[#a19d9b] mt-1">Jujur aja ya, nggak ada yang tahu! 🙈 Ini penting supaya jadwalmu akurat.</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">Berapa jam kamu butuh tidur tiap malam?</label>
                                             <Input className="dark:bg-[#25352c]/50 dark:border-white/10 dark:text-[#e4d8cd]" type="number" min={4} max={12} value={sleepHours} onChange={e => setSleepHours(Number(e.target.value))} />
                                         </div>
                                     </CardContent>

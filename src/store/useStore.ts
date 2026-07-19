@@ -29,6 +29,17 @@ interface PoeState {
     aiReflectionDate: string | null;
     aiSuggestedEnergySlots: EnergySlot[] | null;
 
+    // Streak System (James Clear / BJ Fogg — Habit Science)
+    // Consecutive days where user completed at least 1 task.
+    // Streak is the most powerful retention mechanism for habit apps.
+    currentStreak: number;
+    longestStreak: number;
+    lastActiveDate: string | null; // YYYY-MM-DD format
+
+    // AI Coach Chat History Persistence
+    // Chat history is persisted so users can resume conversations.
+    // Losing chat context breaks the "AI coach" mental model entirely.
+    chatHistory: { id: string; role: "user" | "model"; content: string }[];
     // Actions
     setUser: (user: User) => void;
     addFixedBlock: (block: FixedBlock) => void;
@@ -53,7 +64,8 @@ interface PoeState {
     startTimer: (blockId: string) => void;
     pauseTimer: (currentDisplayedTime: number) => void;
     stopTimer: () => void;
-    syncTimer: () => number; // Calculate precise elapsed time based on timestamp
+    // syncTimer removed: was a non-functional stub (always returned 0).
+    // Elapsed time is computed in useExecutionTracker via ISO timestamp diff.
     setZenMode: (isActive: boolean) => void;
 
     setGcalToken: (token: string | null) => void;
@@ -63,6 +75,13 @@ interface PoeState {
     // AI Cache Actions
     setAiReflection: (text: string, dateISO: string, suggestedSlots?: EnergySlot[] | null) => void;
     setAiSuggestedEnergySlots: (slots: EnergySlot[] | null) => void;
+
+    // Streak Actions
+    updateStreak: () => void;
+
+    // Chat History Actions
+    addChatMessage: (msg: { id: string; role: "user" | "model"; content: string }) => void;
+    clearChatHistory: () => void;
 
     resetTimeline: () => void;
     resetAll: () => void;
@@ -93,6 +112,12 @@ export const usePoeStore = create<PoeState>()(
             aiReflectionText: null,
             aiReflectionDate: null,
             aiSuggestedEnergySlots: null,
+
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: null,
+
+            chatHistory: [],
 
             resetTimeline: () => set({
                 activities: [],
@@ -160,10 +185,15 @@ export const usePoeStore = create<PoeState>()(
                 // For MVP drag-and-drop, we just reorder the array visually and preserve durations.
                 return { currentSchedule: newSchedule };
             }),
-            addExecutionLog: (log) => set((state) => ({ executionLogs: [...state.executionLogs, log] })),
+            addExecutionLog: (log) => set((state) => {
+                const updated = { executionLogs: [...state.executionLogs, log] };
+                return updated;
+            }),
             restoreData: (data) => set((state) => ({ ...state, ...data })),
             addExp: (amount) => set((state) => {
-                const newExp = state.exp + amount;
+                // BUG FIX #12: Without Math.max(0, ...), addExp(-5) (Zen Mode penalty) could
+                // drive EXP negative. Then Math.sqrt(negativeExp/100) = NaN, breaking level display.
+                const newExp = Math.max(0, state.exp + amount);
                 const newLevel = Math.floor(Math.sqrt(newExp / 100)) + 1;
                 return { exp: newExp, level: newLevel };
             }),
@@ -195,9 +225,10 @@ export const usePoeStore = create<PoeState>()(
                 isTimerPaused: true
             })),
 
-            syncTimer: () => {
-                return 0; // The actual sync logic will be handled inside a React component using the store state
-            },
+            // BUG FIX #5: syncTimer was a non-functional stub always returning 0.
+            // The actual elapsed time computation is handled in useExecutionTracker
+            // via ISO timestamp difference, which correctly survives page refreshes.
+            // This stub is removed from the interface.
 
             setZenMode: (isActive) => set({ isZenModeActive: isActive }),
 
@@ -211,6 +242,31 @@ export const usePoeStore = create<PoeState>()(
                 ...(suggestedSlots !== undefined && { aiSuggestedEnergySlots: suggestedSlots })
             }),
             setAiSuggestedEnergySlots: (slots) => set({ aiSuggestedEnergySlots: slots }),
+
+            // SCIENCE: Streak System — Habit Formation (James Clear, BJ Fogg)
+            // Called every time a task is completed. Calculates if today is consecutive
+            // to the last active day. If yes, increment streak. If not, reset to 1.
+            updateStreak: () => set((state) => {
+                const today = new Date().toISOString().split('T')[0];
+                if (state.lastActiveDate === today) {
+                    // Already counted today, no change needed
+                    return {};
+                }
+                const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                const isConsecutive = state.lastActiveDate === yesterday;
+                const newStreak = isConsecutive ? state.currentStreak + 1 : 1;
+                return {
+                    currentStreak: newStreak,
+                    longestStreak: Math.max(newStreak, state.longestStreak),
+                    lastActiveDate: today,
+                };
+            }),
+
+            // Chat History Persistence
+            addChatMessage: (msg) => set((state) => ({
+                chatHistory: [...state.chatHistory.slice(-99), msg] // keep last 100 messages
+            })),
+            clearChatHistory: () => set({ chatHistory: [] }),
 
             resetAll: () => set({
                 user: null,
@@ -227,7 +283,19 @@ export const usePoeStore = create<PoeState>()(
                 isTimerPaused: true,
                 isZenModeActive: false,
                 aiReflectionText: null,
-                aiReflectionDate: null
+                aiReflectionDate: null,
+                aiSuggestedEnergySlots: null,
+                // BUG FIX #6: These were previously NOT reset, meaning after resetAll()
+                // the Google Calendar token and notification settings persisted.
+                // This could cause unexpected GCal pushes for the next user/session.
+                gcalToken: null,
+                autoPushGcal: false,
+                pushNotificationsEnabled: false,
+                // Streak and Chat reset — prevent data from leaking across user sessions
+                currentStreak: 0,
+                longestStreak: 0,
+                lastActiveDate: null,
+                chatHistory: [],
             }),
         }),
         {

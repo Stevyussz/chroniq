@@ -2,6 +2,7 @@ export interface User {
   id: string;
   name: string;
   sleep_hours: number;
+  wake_up_time: string; // HH:mm — the actual time user wakes up (e.g., "07:00", "09:30")
   created_at: string;
 }
 
