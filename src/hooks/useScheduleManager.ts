@@ -5,6 +5,7 @@ import { generateSchedule } from "@/lib/engine/optimizer";
 import { allocateTime } from "@/lib/engine/allocation";
 import { calculateFlexibleTime } from "@/lib/engine/constraint";
 import { ScheduleBlock, Activity } from "@/types";
+import { sendBrowserNotification } from "@/lib/engine/audio";
 
 const clampPriority = (priority: number): 1 | 2 | 3 | 4 | 5 => {
     const normalized = Math.round(Number.isFinite(priority) ? priority : 3);
@@ -42,8 +43,9 @@ export function useScheduleManager() {
         if (!user) return [];
 
         const dateStr = new Date().toISOString().split('T')[0];
+        const activeActivities = sourceActivities.filter(a => !a.is_completed);
         const flexMinutes = calculateFlexibleTime(user.sleep_hours, fixedBlocks);
-        const allocated = allocateTime(sourceActivities, flexMinutes);
+        const allocated = allocateTime(activeActivities, flexMinutes);
 
         return generateSchedule(
             dateStr,
@@ -54,7 +56,7 @@ export function useScheduleManager() {
             allocated,
             usePoeStore.getState().executionLogs,
             currentSchedule,
-            sourceActivities
+            activeActivities
         );
     };
 
@@ -127,7 +129,11 @@ export function useScheduleManager() {
                 }
 
                 const currentLogs = usePoeStore.getState().executionLogs;
-                const allocated = allocateTime(activities, availableFlexMinutes);
+
+                // Only schedule activities that are NOT completed
+                const activeActivities = activities.filter(a => !a.is_completed);
+                const allocated = allocateTime(activeActivities, availableFlexMinutes);
+
                 // Pass logs to the new adaptive engine
                 const newSchedule = generateSchedule(
                     dateStr,
@@ -138,9 +144,21 @@ export function useScheduleManager() {
                     allocated,
                     currentLogs,
                     currentSchedule,
-                    activities
+                    activeActivities
                 );
+                
                 setCurrentSchedule(newSchedule);
+
+                // Auto-Reschedule Alert for Gen Z (Feedback loop)
+                if (isScheduleOutdated) {
+                    const missedCount = activeActivities.length;
+                    if (missedCount > 0) {
+                        sendBrowserNotification(
+                            "🔄 Auto-Reschedule Aktif",
+                            `Ada ${missedCount} tugas kemarin yang belum selesai. Tenang, AI Chroniq sudah memindahkannya ke jadwal hari ini!`
+                        );
+                    }
+                }
             }
         };
 

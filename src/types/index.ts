@@ -31,6 +31,8 @@ export interface Activity {
   category: string;
   checklists?: { id: string; title: string; is_completed: boolean }[];
   preferred_start?: string; // HH:mm format if user requests a specific start time
+  is_completed?: boolean;
+  date_added?: string; // YYYY-MM-DD
 }
 
 export interface ScheduleBlock {

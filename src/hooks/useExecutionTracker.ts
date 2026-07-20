@@ -142,6 +142,12 @@ export function useExecutionTracker() {
     };
 
     const handleSkip = (blockId: string) => {
+        const state = usePoeStore.getState();
+        const block = state.currentSchedule.find(b => b.id === blockId);
+        if (block && block.type === "activity") {
+            state.updateActivity(block.activity_id, { is_completed: true });
+        }
+
         addExecutionLog({
             id: `log-${Date.now()}`,
             schedule_block_id: blockId,
@@ -180,6 +186,12 @@ export function useExecutionTracker() {
         const gainedExp = Math.round(loggedDuration * focusMultiplier * distractionModifier);
         addExp(gainedExp);
         updateStreak(); // Habit Science: update daily streak on task completion
+
+        const state = usePoeStore.getState();
+        const block = state.currentSchedule.find(b => b.id === evalBlockId);
+        if (block && block.type === "activity") {
+            state.updateActivity(block.activity_id, { is_completed: true });
+        }
 
         addExecutionLog({
             id: `log-${Date.now()}`,

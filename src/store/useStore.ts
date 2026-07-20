@@ -46,6 +46,7 @@ interface PoeState {
     removeFixedBlock: (id: string) => void;
     setEnergySlots: (slots: EnergySlot[]) => void;
     addActivity: (activity: Activity) => void;
+    updateActivity: (id: string, updates: Partial<Activity>) => void;
     removeActivity: (id: string) => void;
     setActivities: (activities: Activity[]) => void;
 
@@ -134,6 +135,9 @@ export const usePoeStore = create<PoeState>()(
             removeFixedBlock: (id) => set((state) => ({ fixedBlocks: state.fixedBlocks.filter(b => b.id !== id) })),
             setEnergySlots: (slots) => set({ energySlots: slots }),
             addActivity: (activity) => set((state) => ({ activities: [...state.activities, activity] })),
+            updateActivity: (id, updates) => set((state) => ({
+                activities: state.activities.map(a => a.id === id ? { ...a, ...updates } : a)
+            })),
             removeActivity: (id) => set((state) => ({ activities: state.activities.filter(a => a.id !== id) })),
             setActivities: (activities) => set({ activities }),
 
