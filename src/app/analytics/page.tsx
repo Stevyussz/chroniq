@@ -28,7 +28,8 @@ export default function AnalyticsPage() {
 
     if (!isClient || !user) return <div className="p-8 text-center text-[#a1887f]">Loading Analytics...</div>;
 
-    const insights = generateWeeklyInsights(executionLogs);
+    // BUG FIX #1: Pass currentSchedule so Spaced Repetition & Implementation Intentions insights activate
+    const insights = generateWeeklyInsights(executionLogs, currentSchedule);
 
     // Calculate Scores for Radar
     const disciplineScore = calculateDisciplineScore(executionLogs, currentSchedule);

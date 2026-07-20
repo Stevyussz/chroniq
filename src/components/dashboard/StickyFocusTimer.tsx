@@ -57,8 +57,9 @@ export function StickyFocusTimer({
                         <div className="relative group">
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#ffab91] dark:from-[#ff8a65] to-[#ffccbc] flex items-center justify-center shadow-inner overflow-hidden">
                                 <div className={`absolute inset-0 bg-white/20 dark:bg-black/10 transition-transform duration-1000 ${!isTimerPaused ? 'animate-spin-slow' : ''}`} />
-                                <span className="relative text-white font-black text-lg">
-                                    {Math.floor(activeTimer / 60)}
+                                {/* BUG FIX #8: Previously showed only minutes, now shows MM:SS */}
+                                <span className="relative text-white font-black text-xs leading-none">
+                                    {getFormatTime(activeTimer)}
                                 </span>
                             </div>
 

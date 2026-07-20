@@ -19,6 +19,11 @@ export function useCloudSync() {
         aiReflectionText,
         aiReflectionDate,
         aiSuggestedEnergySlots,
+        // BUG FIX #3: These fields were missing from cloud sync — streak reset on device change
+        currentStreak,
+        longestStreak,
+        lastActiveDate,
+        chatHistory,
         restoreData,
     } = usePoeStore();
     const [isSyncing, setIsSyncing] = useState(false);
@@ -78,7 +83,12 @@ export function useCloudSync() {
                     energySlots,
                     aiReflectionText,
                     aiReflectionDate,
-                    aiSuggestedEnergySlots
+                    aiSuggestedEnergySlots,
+                    // BUG FIX #3: Sync streak + chat so they survive device changes
+                    currentStreak,
+                    longestStreak,
+                    lastActiveDate,
+                    chatHistory: chatHistory.slice(-50), // Sync last 50 messages only (Firestore 1MB doc limit)
                 };
 
                 await setDoc(docRef, {
@@ -114,7 +124,11 @@ export function useCloudSync() {
         fixedBlocks,
         isSyncing,
         level,
-        user
+        user,
+        currentStreak,
+        longestStreak,
+        lastActiveDate,
+        chatHistory,
     ]);
 
     return {

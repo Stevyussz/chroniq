@@ -217,6 +217,8 @@ export default function Dashboard() {
           energyAfter={energyAfter} setEnergyAfter={setEnergyAfter}
           distractions={distractions} setDistractions={setDistractions}
           submitEval={submitEval}
+          // BUG FIX #6: Allow dismissing modal without submitting eval
+          onSkip={() => setEvalBlockId(null)}
         />
       )}
 

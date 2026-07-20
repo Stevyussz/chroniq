@@ -14,6 +14,8 @@ interface MicroEvalModalProps {
     distractions: number;
     setDistractions: (v: number) => void;
     submitEval: () => void;
+    // BUG FIX #6: onSkip allows dismissing without submitting (e.g., urgent situation)
+    onSkip?: () => void;
 }
 
 export function MicroEvalModal({
@@ -24,16 +26,32 @@ export function MicroEvalModal({
     setEnergyAfter,
     distractions,
     setDistractions,
-    submitEval
+    submitEval,
+    onSkip
 }: MicroEvalModalProps) {
     if (!evalBlockId) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-[#4a4a4a]/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-colors">
+        <div
+            className="fixed inset-0 z-50 bg-[#4a4a4a]/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-colors"
+            onClick={(e) => { if (e.target === e.currentTarget && onSkip) onSkip(); }} // Click outside to dismiss
+        >
             <Card className="w-full max-w-md border-2 border-[#81c784] dark:border-[#4caf50] shadow-[0_0_20px_rgba(129,199,132,0.2)] dark:shadow-[0_0_20px_rgba(76,175,80,0.1)] bg-[#e8f5e9] dark:bg-[#1b2620] transition-colors">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-[#5d4037] dark:text-[#e4d8cd]"><ClipboardEdit className="w-5 h-5 text-[#66bb6a] dark:text-[#81c784]" /> Micro Evaluation</CardTitle>
-                    <CardDescription className="dark:text-[#a19d9b]">Beri rate singkat kualitas kerja Anda barusan.</CardDescription>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2 text-[#5d4037] dark:text-[#e4d8cd]"><ClipboardEdit className="w-5 h-5 text-[#66bb6a] dark:text-[#81c784]" /> Micro Evaluation</CardTitle>
+                        {onSkip && (
+                            <button
+                                onClick={onSkip}
+                                className="text-[#a1887f] hover:text-[#5d4037] dark:text-[#a19d9b] dark:hover:text-[#e4d8cd] transition-colors p-1 rounded-lg hover:bg-[#efebe9] dark:hover:bg-white/10"
+                                aria-label="Lewati evaluasi"
+                                title="Lewati (tidak direkomendasikan)"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                    <CardDescription className="dark:text-[#a19d9b]">Beri rate singkat kualitas kerja kamu barusan.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-5 items-end text-[#5d4037] dark:text-[#d7ccc8]">
                     <div>

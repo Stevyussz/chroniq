@@ -18,6 +18,7 @@ export function AiReflectionCard() {
         activities, 
         exp, 
         level, 
+        user,
         aiReflectionText, 
         aiReflectionDate, 
         aiSuggestedEnergySlots,
@@ -57,9 +58,11 @@ export function AiReflectionCard() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    executionLogs: executionLogs.slice(-30), // Kirim 30 block terakhir 
+                    executionLogs: executionLogs.slice(-30),
                     activities: activities.slice(0, 30),
-                    energySlots: energySlots
+                    energySlots: energySlots,
+                    // BUG FIX #2: Send user for personalized coaching (name in reflection text)
+                    user: user ? { name: user.name } : null
                 })
             });
 
