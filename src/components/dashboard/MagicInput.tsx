@@ -133,7 +133,8 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
                         spellCheck="false"
                     />
 
-                    <div className={`flex flex-col gap-1 pr-2 ${isBrainDump ? 'pb-1' : ''}`}>
+                    {/* Fix: use flex-row when single line to avoid vertical overflow getting cut off */}
+                    <div className={`flex ${isBrainDump ? 'flex-col' : 'flex-row'} gap-1 pr-2 ${isBrainDump ? 'pb-1' : ''}`}>
                         <Button
                             type="button"
                             onClick={() => setIsBrainDump(!isBrainDump)}
