@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sparkles, Send } from "lucide-react";
+import { Sparkles, Send, BrainCircuit, Keyboard } from "lucide-react";
 import { type Activity } from "@/types";
 import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
+import TextareaAutosize from 'react-textarea-autosize';
 
 interface MagicInputProps {
     onActivitiesParsed: (activities: Activity[]) => void;
@@ -15,6 +15,15 @@ interface MagicInputProps {
 
 export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }: MagicInputProps) {
     const [text, setText] = useState("");
+    const [isBrainDump, setIsBrainDump] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-focus when switching to brain dump mode
+    useEffect(() => {
+        if (isBrainDump && textareaRef.current) {
+            textareaRef.current.focus();
+        }
+    }, [isBrainDump]);
 
     const clampPriority = (priority?: number): 1 | 2 | 3 | 4 | 5 => {
         const normalized = Math.round(Number.isFinite(priority) ? Number(priority) : 3);
@@ -26,8 +35,8 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
         return Math.min(480, Math.max(5, normalized));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!text.trim() || isProcessing) return;
 
         setIsProcessing(true);
@@ -42,19 +51,19 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
 
             const data = await response.json();
             if (data.activities && Array.isArray(data.activities)) {
-                // Map the returned data into our standard Activity format
                 const newActivities: Activity[] = data.activities.map((a: { name: string; target_duration?: number; priority?: number; category?: string; preferred_start?: string }) => ({
                     id: crypto.randomUUID(),
                     user_id: "u1",
                     name: a.name,
-                    target_duration: clampDuration(a.target_duration), // Fallback if AI gets confused
-                    priority: clampPriority(a.priority),               // Fallback
+                    target_duration: clampDuration(a.target_duration),
+                    priority: clampPriority(a.priority),
                     category: a.category || "Ad-Hoc (Dadakan)",
                     ...(a.preferred_start && { preferred_start: a.preferred_start })
                 }));
 
                 onActivitiesParsed(newActivities);
-                setText(""); // Clear input on success
+                setText("");
+                setIsBrainDump(false); // Reset mode after success
             }
         } catch (error) {
             console.error("AI NLP Error:", error);
@@ -64,42 +73,111 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
         }
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Submit on Enter (if not holding Shift for new line)
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    };
+
     return (
-        <form onSubmit={handleSubmit} className="w-full">
-            <div className={`relative flex items-center w-full transition-all duration-300 rounded-2xl ${isProcessing ? 'ring-4 ring-[#ffccbc] dark:ring-[#ff8a65]/40 shadow-lg shadow-[#ffccbc]/50 dark:shadow-[#ff8a65]/20 bg-[#fff3e0]/60 dark:bg-[#ff8a65]/10 backdrop-blur-md' : 'ring-1 ring-white/50 dark:ring-white/10 bg-white/50 dark:bg-[#1e1e24]/60 backdrop-blur-md hover:bg-white/60 dark:hover:bg-[#2d2d35]/60 hover:shadow-md'
-                }`}>
+        <form onSubmit={handleSubmit} className="w-full relative">
+            <div className={`relative flex flex-col w-full transition-all duration-500 rounded-3xl overflow-hidden ${
+                isProcessing 
+                    ? 'ring-4 ring-[#ffccbc] dark:ring-[#ff8a65]/40 shadow-[0_0_40px_rgba(255,171,145,0.3)] dark:shadow-[0_0_40px_rgba(255,138,101,0.15)] bg-[#fff3e0]/80 dark:bg-[#ff8a65]/10 backdrop-blur-xl' 
+                    : isBrainDump
+                        ? 'ring-2 ring-[#ffab91] dark:ring-[#ff8a65] shadow-[0_10px_40px_rgba(255,171,145,0.2)] dark:shadow-[0_10px_40px_rgba(255,138,101,0.1)] bg-white/80 dark:bg-[#2d2d35]/80 backdrop-blur-xl -translate-y-1'
+                        : 'ring-1 ring-white/50 dark:ring-white/10 bg-white/50 dark:bg-[#1e1e24]/60 backdrop-blur-md hover:bg-white/70 dark:hover:bg-[#2d2d35]/70 hover:shadow-md'
+            }`}>
+                
+                {/* Brain Dump Header (Only visible in Brain Dump Mode) */}
+                {isBrainDump && !isProcessing && (
+                    <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-[#ffccbc]/30 dark:border-[#ff8a65]/20 bg-gradient-to-r from-[#ffe0b2]/30 dark:from-[#ffb74d]/10 to-transparent">
+                        <div className="flex items-center gap-2">
+                            <BrainCircuit className="w-5 h-5 text-[#f57c00] dark:text-[#ffb74d] animate-pulse" />
+                            <span className="text-sm font-black text-[#e65100] dark:text-[#ffccbc] tracking-tight">BRAIN DUMP MODE</span>
+                        </div>
+                        <span className="text-xs font-semibold text-[#8d6e63] dark:text-[#a19d9b]">
+                            Tulis semua yang ada di kepalamu...
+                        </span>
+                    </div>
+                )}
 
-                <div className="pl-4 pr-2 text-[#ff8a65] dark:text-[#ffab91] transition-colors">
-                    {isProcessing ? (
-                        <ChroniqAiLoader size="sm" compact />
-                    ) : (
-                        <Sparkles className="w-5 h-5 opacity-60" />
-                    )}
+                <div className={`flex ${isBrainDump ? 'items-end' : 'items-center'} p-2`}>
+                    <div className={`pl-3 pr-2 text-[#ff8a65] dark:text-[#ffab91] transition-colors ${isBrainDump ? 'pb-3' : ''}`}>
+                        {isProcessing ? (
+                            <ChroniqAiLoader size="sm" compact />
+                        ) : (
+                            <Sparkles className="w-5 h-5 opacity-80" />
+                        )}
+                    </div>
+
+                    <TextareaAutosize
+                        ref={textareaRef}
+                        minRows={isBrainDump ? 4 : 1}
+                        maxRows={8}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={
+                            isProcessing ? "Menyusun jadwal dari pikiran Anda..." : 
+                            isBrainDump ? "Besok ujian matkul AI jam 10, laporan lab fisika harus dikumpul jumat pagi, balikin buku perpus besok siang, mau ngerjain tugas coding malam ini prioritas 5..." : 
+                            "Ketik 1 tugas atau Brain Dump..."
+                        }
+                        disabled={isProcessing}
+                        className={`flex-1 w-full resize-none border-none shadow-none text-base focus-visible:ring-0 placeholder:text-stone-400 dark:placeholder:text-[#a19d9b] pl-1 pr-2 bg-transparent transition-colors py-3 ${
+                            isProcessing ? 'text-[#e64a19] dark:text-[#ffab91] animate-pulse placeholder:text-[#ffab91] dark:placeholder:text-[#ffab91]/70' : 'text-stone-700 dark:text-[#e4d8cd]'
+                        } ${isBrainDump ? 'leading-relaxed' : 'overflow-hidden'}`}
+                        autoComplete="off"
+                        spellCheck="false"
+                    />
+
+                    <div className={`flex flex-col gap-1 pr-2 ${isBrainDump ? 'pb-1' : ''}`}>
+                        <Button
+                            type="button"
+                            onClick={() => setIsBrainDump(!isBrainDump)}
+                            disabled={isProcessing}
+                            variant="ghost"
+                            size="icon"
+                            title="Toggle Brain Dump Mode"
+                            className={`rounded-xl h-10 w-10 transition-colors ${
+                                isBrainDump 
+                                    ? 'bg-[#ffe0b2] dark:bg-[#ff8a65]/30 text-[#e65100] dark:text-[#ffccbc]' 
+                                    : 'text-stone-400 dark:text-[#a19d9b] hover:text-[#f57c00] dark:hover:text-[#ffab91] hover:bg-[#fff3e0] dark:hover:bg-[#ff8a65]/20'
+                            }`}
+                        >
+                            {isBrainDump ? <Keyboard className="w-5 h-5" /> : <BrainCircuit className="w-5 h-5" />}
+                        </Button>
+
+                        <Button
+                            type="button"
+                            onClick={() => handleSubmit()}
+                            disabled={isProcessing || !text.trim()}
+                            variant="ghost"
+                            size="icon"
+                            className={`rounded-xl h-10 w-10 transition-all ${
+                                text.trim() && !isProcessing 
+                                    ? 'bg-gradient-to-br from-[#ffab91] to-[#ffccbc] dark:from-[#ff8a65] dark:to-[#ffb74d] text-white shadow-md hover:scale-105' 
+                                    : 'text-stone-300 dark:text-[#5d4037]'
+                            }`}
+                        >
+                            <Send className="w-5 h-5" />
+                        </Button>
+                    </div>
                 </div>
-
-                <Input
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder={isProcessing ? "Menyusun jadwal dari pikiran Anda..." : "Ngetik di sini aja... (Contoh: Bales email Pak Bos nanti sore prioritas tinggi)"}
-                    disabled={isProcessing}
-                    className={`flex-1 border-none shadow-none text-base focus-visible:ring-0 placeholder:text-stone-400 dark:placeholder:text-[#a19d9b] pl-0 bg-transparent transition-colors ${isProcessing ? 'text-[#e64a19] dark:text-[#ffab91] animate-pulse placeholder:text-[#ffab91] dark:placeholder:text-[#ffab91]/70' : 'text-stone-700 dark:text-[#e4d8cd]'}`}
-                    autoComplete="off"
-                />
-
-                <Button
-                    type="submit"
-                    disabled={isProcessing || !text.trim()}
-                    variant="ghost"
-                    className={`rounded-r-2xl pr-4 pl-2 h-12 transition-colors ${text.trim() && !isProcessing ? 'text-[#e64a19] dark:text-[#ffab91] hover:bg-[#ffebee] dark:hover:bg-[#ff8a65]/20 hover:text-[#d84315] dark:hover:text-[#ffccbc]' : 'text-stone-300 dark:text-[#5d4037]'
-                        }`}
-                >
-                    <Send className="w-5 h-5" />
-                </Button>
             </div>
 
-            <span className="mt-2 ml-2 text-[11px] text-stone-400 dark:text-[#a19d9b] flex items-center gap-1 font-medium transition-colors">
-                <Sparkles className="w-3 h-3 text-[#ff8a65] dark:text-[#ffab91]" /> Natural Language Powered
-            </span>
+            <div className="mt-2.5 ml-3 flex items-center justify-between">
+                <span className="text-[11px] text-stone-400 dark:text-[#a19d9b] flex items-center gap-1.5 font-bold uppercase tracking-wider transition-colors">
+                    <Sparkles className="w-3.5 h-3.5 text-[#ff8a65] dark:text-[#ffab91]" /> Natural Language Powered
+                </span>
+                {isBrainDump && (
+                    <span className="text-[10px] text-stone-400 dark:text-[#a19d9b] font-medium mr-2">
+                        Tekan <kbd className="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-1 rounded text-stone-500 dark:text-stone-400">Shift</kbd> + <kbd className="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-1 rounded text-stone-500 dark:text-stone-400">Enter</kbd> untuk baris baru
+                    </span>
+                )}
+            </div>
         </form>
     );
 }

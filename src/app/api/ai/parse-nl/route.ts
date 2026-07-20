@@ -47,13 +47,13 @@ export async function POST(req: Request) {
         const currentHour = new Date().getHours();
         const timeOfDay = currentHour < 12 ? 'pagi' : currentHour < 15 ? 'siang' : currentHour < 18 ? 'sore' : 'malam';
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-lite",
-            generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.2,       // Deterministic structured output, no creativity needed
-                maxOutputTokens: 512,  // 5 task objects max ≈ 200-300 tokens; cap for safety
-                responseSchema: {
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash-lite",
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.2,       // Deterministic structured output, no creativity needed
+                    maxOutputTokens: 1500,  // Increased for Brain Dump Mode (supports 10-15 tasks)
+                    responseSchema: {
                     type: SchemaType.ARRAY,
                     items: {
                         type: SchemaType.OBJECT,
