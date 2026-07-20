@@ -27,6 +27,7 @@
     "react": "19.2.3",
     "react-confetti": "^6.4.0",
     "react-dom": "19.2.3",
+    "react-textarea-autosize": "^8.5.9",
     "react-use": "^17.6.0",
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.5.0",
