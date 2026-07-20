@@ -6,10 +6,20 @@ import { allocateTime } from "@/lib/engine/allocation";
 import { calculateFlexibleTime } from "@/lib/engine/constraint";
 import { ScheduleBlock, Activity } from "@/types";
 
+const clampPriority = (priority: number): 1 | 2 | 3 | 4 | 5 => {
+    const normalized = Math.round(Number.isFinite(priority) ? priority : 3);
+    return Math.min(5, Math.max(1, normalized)) as 1 | 2 | 3 | 4 | 5;
+};
+
+const clampDuration = (duration: number): number => {
+    const normalized = Math.round(Number.isFinite(duration) ? duration : 30);
+    return Math.min(480, Math.max(5, normalized));
+};
+
 export function useScheduleManager() {
     const {
         user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs,
-        setCurrentSchedule, shiftSchedule, addActivity, removeActivity, setActivities, restoreData,
+        setCurrentSchedule, shiftSchedule, removeActivity, setActivities, restoreData,
         gcalToken, autoPushGcal
     } = usePoeStore();
 
@@ -27,6 +37,43 @@ export function useScheduleManager() {
 
     // Data Portability State
     const [showSettings, setShowSettings] = useState(false);
+
+    const buildSchedule = (sourceActivities: Activity[]) => {
+        if (!user) return [];
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        const flexMinutes = calculateFlexibleTime(user.sleep_hours, fixedBlocks);
+        const allocated = allocateTime(sourceActivities, flexMinutes);
+
+        return generateSchedule(
+            dateStr,
+            user.sleep_hours,
+            user.wake_up_time || "07:00",
+            fixedBlocks,
+            energySlots,
+            allocated,
+            usePoeStore.getState().executionLogs,
+            currentSchedule,
+            sourceActivities
+        );
+    };
+
+    const commitActivitiesAndOptimize = (nextActivities: Activity[]) => {
+        const normalizedActivities = nextActivities.map((activity) => ({
+            ...activity,
+            target_duration: clampDuration(activity.target_duration),
+            priority: clampPriority(activity.priority),
+        }));
+        const dateStr = new Date().toISOString().split('T')[0];
+        const newSchedule = buildSchedule(normalizedActivities);
+
+        setActivities(normalizedActivities);
+        setCurrentSchedule(newSchedule);
+
+        if (autoPushGcal && gcalToken) {
+            pushToGoogleCalendar(newSchedule, dateStr, normalizedActivities);
+        }
+    };
 
     useEffect(() => {
         // Initialize clock
@@ -124,12 +171,14 @@ export function useScheduleManager() {
         const newAct = {
             id: `act-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             user_id: user?.id || "user",
-            name: taskDetails.name,
-            target_duration: taskDetails.duration,
-            priority: taskDetails.priority as 1 | 2 | 3 | 4 | 5,
+            name: taskDetails.name.trim(),
+            target_duration: clampDuration(taskDetails.duration),
+            priority: clampPriority(taskDetails.priority),
             category: taskDetails.category || "Ad-Hoc", // Use provided or default
             ...(taskDetails.preferred_start && { preferred_start: taskDetails.preferred_start }) // Inject if exists
         };
+
+        if (!newAct.name) return;
 
         if (newAct.target_duration > 120) {
             setPendingLargeTask(newAct);
@@ -137,10 +186,10 @@ export function useScheduleManager() {
             return;
         }
 
-        addActivity(newAct);
+        commitActivitiesAndOptimize([...usePoeStore.getState().activities, newAct]);
     };
 
-    const pushToGoogleCalendar = async (schedule: ScheduleBlock[], dateStr: string) => {
+    const pushToGoogleCalendar = async (schedule: ScheduleBlock[], dateStr: string, sourceActivities: Activity[] = activities) => {
         if (!gcalToken || !autoPushGcal) return;
 
         setIsPushingToGcal(true);
@@ -149,7 +198,7 @@ export function useScheduleManager() {
 
             // Execute pushes sequentially to be safe with rate limits, or Promise.all if we prefer speed
             for (const block of activitiesToPush) {
-                const act = activities.find(a => a.id === block.activity_id);
+                const act = sourceActivities.find(a => a.id === block.activity_id);
                 if (!act) continue;
 
                 // Construct ISO datetimes for Google Calendar
@@ -187,7 +236,7 @@ export function useScheduleManager() {
         let optimizedActivities = [...activities];
 
         try {
-            // Allow Gemini to review and re-categorize or break down any messy newly added activities
+            // Allow Chroniq AI to review and re-categorize or break down any messy newly added activities
             const response = await fetch('/api/ai/refine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -205,29 +254,8 @@ export function useScheduleManager() {
             console.warn("AI refine optimization failed, falling back to local deterministic engine only:", error);
         }
 
-        const dateStr = new Date().toISOString().split('T')[0];
-        // BUG FIX #3 (same as above): Use the real constraint engine, not a hard-coded value.
-        const flexMinutes = calculateFlexibleTime(user.sleep_hours, fixedBlocks);
-        const allocated = allocateTime(optimizedActivities, flexMinutes);
-        const newSchedule = generateSchedule(
-            dateStr,
-            user.sleep_hours,
-            user.wake_up_time || "07:00", // Use real wake-up time, fallback to 07:00
-            fixedBlocks,
-            energySlots,
-            allocated,
-            usePoeStore.getState().executionLogs,
-            currentSchedule,
-            optimizedActivities // Use newly refined set
-        );
-
-        setCurrentSchedule(newSchedule);
+        commitActivitiesAndOptimize(optimizedActivities);
         setIsReoptimizing(false);
-
-        // Auto-Push to GCal if enabled
-        if (autoPushGcal && gcalToken) {
-            pushToGoogleCalendar(newSchedule, dateStr);
-        }
     };
 
     const handleConfirmAiSplit = async () => {
@@ -244,20 +272,22 @@ export function useScheduleManager() {
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to fetch from Gemini AI');
+            if (!response.ok) throw new Error('Failed to fetch from Chroniq AI');
 
             const data = await response.json();
 
             if (data.subtasks && Array.isArray(data.subtasks)) {
                 // Map the creative AI tasks into our store
-                data.subtasks.forEach((subtask: { name: string; duration: number }, index: number) => {
-                    addActivity({
+                const nextActivities = [
+                    ...usePoeStore.getState().activities,
+                    ...data.subtasks.map((subtask: { name: string; duration: number }, index: number) => ({
                         ...pendingLargeTask,
                         id: `${pendingLargeTask.id}-ai-part${index + 1}`,
                         name: `${subtask.name} (${pendingLargeTask.name})`,
-                        target_duration: subtask.duration
-                    });
-                });
+                        target_duration: clampDuration(subtask.duration)
+                    }))
+                ];
+                commitActivitiesAndOptimize(nextActivities);
             } else {
                 throw new Error('Invalid schema returned from AI');
             }
@@ -268,37 +298,37 @@ export function useScheduleManager() {
             const chunkDuration = 60;
             const chunks = Math.ceil(pendingLargeTask.target_duration / chunkDuration);
 
+            const splitActivities: Activity[] = [];
             for (let i = 0; i < chunks; i++) {
                 const remainingDuration = (i === chunks - 1)
                     ? pendingLargeTask.target_duration - (i * chunkDuration)
                     : chunkDuration;
 
-                addActivity({
+                splitActivities.push({
                     ...pendingLargeTask,
                     id: `${pendingLargeTask.id}-part${i + 1}`,
                     name: `${pendingLargeTask.name} (Part ${i + 1}/${chunks})`,
-                    target_duration: remainingDuration
+                    target_duration: clampDuration(remainingDuration)
                 });
             }
+            commitActivitiesAndOptimize([...usePoeStore.getState().activities, ...splitActivities]);
         } finally {
             setIsAiLoading(false);
             setShowAiSplitModal(false);
             setPendingLargeTask(null);
-            setTimeout(handleReoptimize, 100);
         }
     };
 
     const handleRejectAiSplit = () => {
         if (!pendingLargeTask) return;
-        addActivity(pendingLargeTask);
+        commitActivitiesAndOptimize([...usePoeStore.getState().activities, pendingLargeTask]);
         setShowAiSplitModal(false);
         setPendingLargeTask(null);
-        setTimeout(handleReoptimize, 100);
     };
 
     const handleDeleteActivity = (activityId: string) => {
         removeActivity(activityId);
-        setTimeout(handleReoptimize, 100);
+        commitActivitiesAndOptimize(usePoeStore.getState().activities.filter(activity => activity.id !== activityId));
     };
 
     const handleExport = () => {

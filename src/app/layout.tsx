@@ -66,8 +66,8 @@ export default function RootLayout({
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
     return (
-        <html lang="id">
-            <body className={`${inter.className} min-h-screen bg-[#FDFBF7] text-[#4a4a4a] antialiased pb-[max(1rem,env(safe-area-inset-bottom))]`}>
+        <html lang="id" suppressHydrationWarning>
+            <body className={`${inter.className} min-h-screen bg-[--background] text-[--foreground] antialiased pb-[max(1rem,env(safe-area-inset-bottom))]`}>
                 <GoogleOAuthProvider clientId={clientId}>
                     <Providers>
                         <Navbar />

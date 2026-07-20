@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { MessageSquare, Send, Loader2, Sparkles, Brain, Code } from "lucide-react";
+import { Send, Sparkles, Brain, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
 import { usePoeStore } from "@/store/useStore";
 import { useScheduleManager } from "@/hooks/useScheduleManager";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +22,7 @@ export default function CoachPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const {
         level, exp, activities, currentSchedule, addActivity, removeActivity,
-        energySlots, fixedBlocks, user, chatHistory, addChatMessage, clearChatHistory,
+        energySlots, fixedBlocks, user, chatHistory, addChatMessage,
         currentStreak, longestStreak
     } = usePoeStore();
     const { handleReoptimize } = useScheduleManager();
@@ -114,7 +115,7 @@ export default function CoachPage() {
             }
 
             const data = await response.json();
-            let aiReplyText = data.reply || "";
+            const aiReplyText = data.reply || "";
 
             // Check if there's an action block (Markdown JSON parse)
             const jsonBlockRegex = /```json\n([\s\S]*?)\n```/g;
@@ -151,8 +152,8 @@ export default function CoachPage() {
                         handleReoptimize();
                         actionParsed = true;
                     }
-                } catch (e) {
-                    console.error("Failed to parse action JSON from bot:", e);
+                } catch (error) {
+                    console.error("Failed to parse action JSON from bot:", error);
                 }
             }
 
@@ -166,7 +167,7 @@ export default function CoachPage() {
             setMessages(prev => [...prev, aiMsg]);
             addChatMessage(aiMsg); // Persist to store
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Chat error", error);
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
@@ -236,8 +237,11 @@ export default function CoachPage() {
                                 className="flex justify-start"
                             >
                                 <div className="px-5 py-3.5 bg-white/80 dark:bg-[#2d2d35]/80 backdrop-blur-sm border border-white dark:border-white/5 text-[#ff8a65] dark:text-[#ffab91] rounded-2xl rounded-tl-md shadow-sm flex items-center gap-3 transition-colors">
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span className="text-sm font-semibold tracking-wide">AI sedang menyusun taktik...</span>
+                                    <ChroniqAiLoader
+                                        size="sm"
+                                        label="AI sedang menyusun taktik"
+                                        sublabel="Membaca konteks jadwal dan ritmemu."
+                                    />
                                 </div>
                             </motion.div>
                         )}
@@ -263,7 +267,7 @@ export default function CoachPage() {
                             {cooldown > 0 ? (
                                 <span className="text-sm font-bold text-[#a1887f] dark:text-[#a19d9b]">{cooldown}s</span>
                             ) : isThinking ? (
-                                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                                <ChroniqAiLoader size="sm" compact />
                             ) : (
                                 <Send className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                             )}

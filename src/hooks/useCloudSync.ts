@@ -3,11 +3,24 @@
 import { useEffect, useState } from 'react';
 import { usePoeStore } from '@/store/useStore';
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 export function useCloudSync() {
-    const store = usePoeStore();
+    const {
+        user,
+        activities,
+        currentSchedule,
+        executionLogs,
+        exp,
+        level,
+        fixedBlocks,
+        energySlots,
+        aiReflectionText,
+        aiReflectionDate,
+        aiSuggestedEnergySlots,
+        restoreData,
+    } = usePoeStore();
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastSyncedMs, setLastSyncedMs] = useState(0);
 
@@ -27,7 +40,7 @@ export function useCloudSync() {
                         // Merge important store state if exists
                         if (data.state) {
                             console.log("[CloudSync] Hydrating from Cloud:", data.state);
-                            store.restoreData(data.state);
+                            restoreData(data.state);
                         }
                     } else {
                         console.log("[CloudSync] No cloud save found. Creating new document.");
@@ -41,7 +54,7 @@ export function useCloudSync() {
         });
 
         return () => unsubscribe();
-    }, []); // Run once on mount
+    }, [restoreData]); // Run once on mount unless the store action reference changes
 
     // 2. Push Changes Automatically (Debounced)
     useEffect(() => {
@@ -55,17 +68,17 @@ export function useCloudSync() {
 
                 // We only save core persistent state, skipping transient UI state
                 const payload = {
-                    user: store.user,
-                    activities: store.activities,
-                    currentSchedule: store.currentSchedule,
-                    executionLogs: store.executionLogs,
-                    exp: store.exp,
-                    level: store.level,
-                    fixedBlocks: store.fixedBlocks,
-                    energySlots: store.energySlots,
-                    aiReflectionText: store.aiReflectionText,
-                    aiReflectionDate: store.aiReflectionDate,
-                    aiSuggestedEnergySlots: store.aiSuggestedEnergySlots
+                    user,
+                    activities,
+                    currentSchedule,
+                    executionLogs,
+                    exp,
+                    level,
+                    fixedBlocks,
+                    energySlots,
+                    aiReflectionText,
+                    aiReflectionDate,
+                    aiSuggestedEnergySlots
                 };
 
                 await setDoc(docRef, {
@@ -90,12 +103,18 @@ export function useCloudSync() {
 
     }, [
         // Dependencies that trigger a push:
-        store.activities,
-        store.currentSchedule,
-        store.executionLogs,
-        store.user,
-        store.exp,
-        store.fixedBlocks
+        activities,
+        aiReflectionDate,
+        aiReflectionText,
+        aiSuggestedEnergySlots,
+        currentSchedule,
+        energySlots,
+        executionLogs,
+        exp,
+        fixedBlocks,
+        isSyncing,
+        level,
+        user
     ]);
 
     return {

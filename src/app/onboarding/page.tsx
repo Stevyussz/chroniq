@@ -2,16 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Sparkles, Zap, ChevronDown, ChevronUp, Brain, LogIn, Cloud, ShieldCheck } from "lucide-react";
+import { ArrowRight, Zap, ChevronDown, ChevronUp, Brain, Cloud, ShieldCheck, Trash2 } from "lucide-react";
 import { usePoeStore } from "@/store/useStore";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
 import { Activity, EnergySlot, FixedBlock } from "@/types";
 import { MagicInput } from '@/components/dashboard/MagicInput';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithPopup, User } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -77,7 +79,6 @@ export default function OnboardingPage() {
     // to the user's actual wake time using the CAR formula.
     useEffect(() => {
         setEnergySlotsLocal(computeDefaultEnergySlots(wakeUpTime));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [wakeUpTime]);
 
     const handleNext = () => setStep(s => Math.min(s + 1, 4));
@@ -92,19 +93,26 @@ export default function OnboardingPage() {
                 setName(result.user.displayName);
             }
             handleNext(); // Move to Step 1 (Profile)
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Login failed:", error);
-            // Show the actual Firebase Error Code to the user so they can report it
-            alert(`Gagal login dengan Google. Error: ${error?.code || error?.message || 'Unknown Error'}`);
+            const message = error instanceof FirebaseError || error instanceof Error
+                ? error.message
+                : "Unknown Error";
+            alert(`Gagal login dengan Google. Error: ${message}`);
         } finally {
             setIsAuthenticating(false);
         }
     };
 
+    const handleGuestMode = () => {
+        setName((current) => current || "Chroniq User");
+        handleNext();
+    };
+
     const handleFinish = async () => {
         setIsAiOptimizing(true);
         try {
-            // 1. Send straight to Gemini for logical refinement & break down
+            // 1. Send to Chroniq AI for logical refinement & break down
             let finalActivities = [...activities];
 
             if (finalActivities.length > 0) {
@@ -156,6 +164,10 @@ export default function OnboardingPage() {
         setNewFixed({ title: "", start_time: "09:00", end_time: "17:00" });
     };
 
+    const onRemoveFixed = (id: string) => {
+        setFixedBlocks(prev => prev.filter(block => block.id !== id));
+    };
+
     const onAddActivity = () => {
         if (!newAct.name) return;
         setActivities(prev => [...prev, {
@@ -169,13 +181,17 @@ export default function OnboardingPage() {
         setNewAct({ name: "", duration: 30, priority: 3, category: "Fokus Tinggi (Analitis)" });
     };
 
+    const onRemoveActivity = (id: string) => {
+        setActivities(prev => prev.filter(activity => activity.id !== id));
+    };
+
     const handleMagicInputParsed = (newActivities: Activity[]) => {
         setActivities(prev => [...prev, ...newActivities]);
         setIsAiExpanded(false); // auto collapse after adding
     };
 
     return (
-        <div className="max-w-2xl mx-auto min-h-[80vh] flex flex-col justify-center">
+        <div className="max-w-2xl mx-auto min-h-[80vh] flex flex-col justify-center px-2 sm:px-0 pb-10">
             <div className="mb-8 overflow-hidden rounded-2xl bg-white/40 dark:bg-[#1e1e24]/40 p-6 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-sm relative transition-colors">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#ffab91]/20 dark:from-[#ff8a65]/10 to-[#ffccbc]/20 dark:to-[#ffccbc]/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
@@ -236,9 +252,18 @@ export default function OnboardingPage() {
                                             )}
                                             {isAuthenticating ? "Menghubungkan..." : "Lanjut dengan Google"}
                                         </Button>
+                                        <Button
+                                            size="lg"
+                                            variant="outline"
+                                            onClick={handleGuestMode}
+                                            disabled={isAuthenticating}
+                                            className="w-full max-w-xs h-12 rounded-xl border-[#c7d2fe] text-[#4655d6] dark:border-[#818cf8]/40 dark:text-[#c7d2fe] hover:bg-[#eef2ff] dark:hover:bg-[#312e81]/30"
+                                        >
+                                            Lanjut Mode Lokal <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
                                         <div className="flex items-center gap-1.5 text-xs text-[#a1887f] dark:text-[#a19d9b] font-medium transition-colors">
                                             <ShieldCheck className="w-3.5 h-3.5" />
-                                            <span>Data Anda aman</span>
+                                            <span>{fbUser ? `Terhubung sebagai ${fbUser.displayName || fbUser.email}` : "Bisa dipakai tanpa login untuk demo lokal"}</span>
                                         </div>
                                     </CardContent>
                                 </>
@@ -275,8 +300,8 @@ export default function OnboardingPage() {
                                         <CardDescription className="dark:text-[#a19d9b]">Masukkan jadwal yang tidak bisa diganggu (misal: Kerja, Kelas, Commute).</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4 text-[#5d4037] dark:text-[#d7ccc8]">
-                                        <div className="flex gap-2 items-end">
-                                            <div className="flex-1">
+                                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-end">
+                                            <div>
                                                 <label className="text-sm">Kegiatan</label>
                                                 <Input className="dark:bg-[#25352c]/50 dark:border-white/10 dark:text-[#e4d8cd]" value={newFixed.title} onChange={e => setNewFixed(prev => ({ ...prev, title: e.target.value }))} placeholder="Kerja Kantor" />
                                             </div>
@@ -292,10 +317,15 @@ export default function OnboardingPage() {
                                         </div>
 
                                         <div className="space-y-2 mt-4">
-                                            {fixedBlocks.map((fb, idx) => (
-                                                <div key={idx} className="flex justify-between p-4 border-2 rounded-2xl border-[#efebe9] dark:border-white/10 bg-white/50 dark:bg-[#25352c]/30 transition-colors">
-                                                    <span className="font-bold">{fb.title}</span>
-                                                    <span className="text-[#a1887f] dark:text-[#a19d9b] font-mono">{fb.start_time} - {fb.end_time}</span>
+                                            {fixedBlocks.map((fb) => (
+                                                <div key={fb.id} className="flex items-center justify-between gap-3 p-4 border rounded-lg border-[#e2e8f0] dark:border-white/10 bg-white/60 dark:bg-[#25352c]/30 transition-colors">
+                                                    <div className="min-w-0">
+                                                        <span className="font-bold block truncate">{fb.title}</span>
+                                                        <span className="text-[#64748b] dark:text-[#a19d9b] font-mono text-sm">{fb.start_time} - {fb.end_time}</span>
+                                                    </div>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-[#ef4444]" onClick={() => onRemoveFixed(fb.id)} aria-label={`Hapus ${fb.title}`}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
@@ -311,15 +341,15 @@ export default function OnboardingPage() {
                                     </CardHeader>
                                     <CardContent className="space-y-4 text-[#5d4037] dark:text-[#d7ccc8]">
                                         {energySlots.map((slot, idx) => (
-                                            <div key={idx} className="flex gap-4 items-center p-4 border-2 rounded-2xl border-[#efebe9] dark:border-white/10 bg-white/50 dark:bg-[#25352c]/30 transition-colors">
+                                            <div key={idx} className="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_5rem_1fr_auto_1fr] gap-3 items-center p-4 border rounded-lg border-[#e2e8f0] dark:border-white/10 bg-white/60 dark:bg-[#25352c]/30 transition-colors">
                                                 <div className={`w-4 h-4 rounded-full flex-shrink-0 ${slot.energy_level === 'peak' ? 'bg-[#ffab91] dark:bg-[#ff8a65] shadow-[0_0_10px_rgba(255,171,145,0.8)] dark:shadow-[0_0_10px_rgba(255,138,101,0.5)]' : slot.energy_level === 'medium' ? 'bg-[#ffe082] dark:bg-[#ffd54f] shadow-[0_0_10px_rgba(255,224,130,0.8)] dark:shadow-[0_0_10px_rgba(255,213,79,0.5)]' : 'bg-[#a5d6a7] dark:bg-[#81c784] shadow-[0_0_10px_rgba(165,214,167,0.8)] dark:shadow-[0_0_10px_rgba(129,199,132,0.5)]'}`} />
-                                                <span className="w-20 font-medium capitalize hidden sm:block">{slot.energy_level}</span>
+                                                <span className="font-medium capitalize">{slot.energy_level}</span>
                                                 <Input className="dark:bg-[#1b2620]/50 dark:border-white/10 dark:text-[#e4d8cd]" type="time" value={slot.start_time} onChange={(e) => {
                                                     const newSlots = [...energySlots];
                                                     newSlots[idx].start_time = e.target.value;
                                                     setEnergySlotsLocal(newSlots);
                                                 }} />
-                                                <span className="text-sm">sampai</span>
+                                                <span className="text-sm hidden sm:inline">sampai</span>
                                                 <Input className="dark:bg-[#1b2620]/50 dark:border-white/10 dark:text-[#e4d8cd]" type="time" value={slot.end_time} onChange={(e) => {
                                                     const newSlots = [...energySlots];
                                                     newSlots[idx].end_time = e.target.value;
@@ -345,6 +375,20 @@ export default function OnboardingPage() {
                                         <CardDescription className="text-sm mt-2 dark:text-[#a19d9b]">Beri tahu AI apa yang harus Anda kerjakan hari ini dalam bahasa sehari-hari. Chroniq akan meraciknya.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
+                                        {(isAiProcessing || isAiOptimizing) && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                className="rounded-2xl border border-[#818cf8]/30 bg-[#eef2ff]/80 dark:bg-[#1e1b4b]/35 p-4 shadow-[0_10px_30px_rgba(79,70,229,0.12)]"
+                                            >
+                                                <ChroniqAiLoader
+                                                    size="md"
+                                                    label={isAiOptimizing ? "Chroniq AI mengompilasi harimu" : "Chroniq AI membaca rencana kamu"}
+                                                    sublabel={isAiOptimizing ? "Refine tugas, cek energi, lalu siapkan timeline pertama." : "Mengubah bahasa sehari-hari menjadi aktivitas, prioritas, dan durasi."}
+                                                />
+                                            </motion.div>
+                                        )}
+
                                         {/* AI Natural Language Input Toggle */}
                                         {!isAiExpanded ? (
                                             <Button
@@ -422,12 +466,15 @@ export default function OnboardingPage() {
                                         )}
 
                                         <div className="space-y-2 mt-4 max-h-[300px] overflow-auto">
-                                            {activities.map((act, idx) => (
-                                                <div key={idx} className="flex justify-between items-center p-4 border-2 border-[#efebe9] dark:border-white/10 rounded-2xl bg-[#fffbfa] dark:bg-[#25352c]/30 transition-colors">
-                                                    <div>
+                                            {activities.map((act) => (
+                                                <div key={act.id} className="flex justify-between items-center gap-3 p-4 border border-[#e2e8f0] dark:border-white/10 rounded-lg bg-white/70 dark:bg-[#25352c]/30 transition-colors">
+                                                    <div className="min-w-0">
                                                         <div className="font-bold text-[#5d4037] dark:text-[#e4d8cd]">{act.name}</div>
                                                         <div className="text-sm font-medium text-[#a1887f] dark:text-[#a19d9b]">{act.target_duration} mins | Priority: {act.priority} | cat: {act.category}</div>
                                                     </div>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-[#ef4444]" onClick={() => onRemoveActivity(act.id)} aria-label={`Hapus ${act.name}`}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
@@ -455,7 +502,7 @@ export default function OnboardingPage() {
                             className="bg-[#5d4037] dark:bg-[#ff8a65] hover:bg-[#4e342e] dark:hover:bg-[#f4511e] text-white rounded-xl shadow-md min-w-[120px] transition-all flex items-center gap-2"
                         >
                             {isAiOptimizing ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <ChroniqAiLoader size="sm" compact />
                             ) : null}
                             {step === 4 ? (isAiOptimizing ? "Memproses..." : "Mulai Optimasi") : "Selanjutnya"}
                         </Button>

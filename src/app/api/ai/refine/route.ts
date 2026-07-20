@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { refineActivitiesOffline } from '@/lib/ai/fallback';
+import { Activity } from '@/types';
 
-// Initialize the Gemini SDK
+// Initialize the Chroniq AI provider SDK
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
+    let fallbackActivities: Activity[] = [];
+
     try {
         const { activities } = await req.json();
+        fallbackActivities = Array.isArray(activities) ? activities as Activity[] : [];
 
         if (!activities || !Array.isArray(activities) || activities.length === 0) {
             return NextResponse.json({ error: 'Missing or empty activities array.' }, { status: 400 });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return NextResponse.json({ refinedActivities: refineActivitiesOffline(activities as Activity[]), mode: "offline" });
         }
 
         const model = genAI.getGenerativeModel({
@@ -82,7 +91,14 @@ ${JSON.stringify(activities, null, 2)}
         }
 
     } catch (error: unknown) {
-        console.error('AI Refine Error:', error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        console.warn('AI Refine fell back to offline mode:', error);
+        if (fallbackActivities.length === 0) {
+            return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        }
+        return NextResponse.json({
+            refinedActivities: refineActivitiesOffline(fallbackActivities),
+            mode: "offline-fallback",
+            warning: "Chroniq AI sedang memakai mode refine lokal."
+        });
     }
 }

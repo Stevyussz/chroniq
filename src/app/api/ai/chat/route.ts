@@ -17,6 +17,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Messages array is required' }, { status: 400 });
         }
 
+        if (!process.env.GEMINI_API_KEY) {
+            return NextResponse.json({
+                reply: "Mode AI offline aktif, jadi aku belum bisa ngobrol penuh. Kamu tetap bisa tambah tugas lewat dashboard, dan Chroniq akan menyusun timeline dengan engine lokal."
+            });
+        }
+
         // Dynamic persona based on user level & burnout state
         const isHighLevel = (context?.level || 1) >= 5;
         const streak = context?.currentStreak || 0;
@@ -70,7 +76,7 @@ FILOSOFI: "Sistem yang baik melayani ritme biologis manusia, bukan sebaliknya."`
             }
         });
 
-        // Build alternating history (Gemini requires strict user/model alternation)
+        // Build alternating history required by the active Chroniq AI provider
         const userMessages = messages.filter((m: { role: string }) => m.role === 'user');
         const lastUserPrompt = userMessages[userMessages.length - 1]?.content || "Halo Chroniq!";
 
@@ -98,10 +104,9 @@ FILOSOFI: "Sistem yang baik melayani ritme biologis manusia, bukan sebaliknya."`
         return NextResponse.json({ reply: textResponse });
 
     } catch (error: unknown) {
-        console.error('AI Chat Error:', error);
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Internal Server Error' },
-            { status: 500 }
-        );
+        console.warn('AI Chat fell back to offline mode:', error);
+        return NextResponse.json({
+            reply: "Chroniq AI sedang masuk mode offline dulu. Untuk sementara, tambah tugas lewat Dashboard atau re-optimize dengan engine lokal Chroniq tetap bisa jalan."
+        });
     }
 }

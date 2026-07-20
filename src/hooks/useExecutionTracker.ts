@@ -4,8 +4,6 @@ import { playZenChime, sendBrowserNotification } from "@/lib/engine/audio";
 
 export function useExecutionTracker() {
     const {
-        activities,
-        currentSchedule,
         activeBlockId,
         timerStartedAtISO,
         elapsedSeconds,
@@ -111,10 +109,7 @@ export function useExecutionTracker() {
         activeBlockId,
         isTimerPaused,
         timerStartedAtISO,
-        // BUG FIX #9: Removed `elapsedSeconds`, `currentSchedule`, `activities` from deps.
-        // These caused the interval to be torn down and rebuilt on every tick/log update,
-        // wasting resources and causing edge-case timer drift. We now read fresh values
-        // from the store directly inside the callback.
+        elapsedSeconds,
     ]);
 
     const handleStart = (blockId: string) => {

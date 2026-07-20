@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { buildOfflineReflection } from '@/lib/ai/fallback';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -14,11 +15,20 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
  * - Circadian Biology (Roenneberg): identify personal chronotype shifts
  */
 export async function POST(request: Request) {
+    let fallbackExecutionLogs = [];
+    let fallbackEnergySlots = [];
+
     try {
         const { executionLogs, activities, energySlots, user } = await request.json();
+        fallbackExecutionLogs = Array.isArray(executionLogs) ? executionLogs : [];
+        fallbackEnergySlots = Array.isArray(energySlots) ? energySlots : [];
 
         if (!executionLogs || !activities || !energySlots) {
             return NextResponse.json({ error: 'executionLogs, activities, and energySlots are required' }, { status: 400 });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return NextResponse.json(buildOfflineReflection(executionLogs, energySlots));
         }
 
         // Use structured JSON schema to guarantee parseable output (no regex hacks needed)
@@ -126,7 +136,11 @@ Kembalikan dalam format JSON sesuai schema.
         return NextResponse.json(parsedData);
 
     } catch (error) {
-        console.error("Gemini Reflection Error:", error);
-        return NextResponse.json({ error: 'Failed to generate AI reflection' }, { status: 500 });
+        console.warn("Chroniq AI Reflection fell back to offline mode:", error);
+        return NextResponse.json({
+            ...buildOfflineReflection(fallbackExecutionLogs, fallbackEnergySlots),
+            mode: "offline-fallback",
+            warning: "Chroniq AI sedang memakai mode insight lokal."
+        });
     }
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { parseTasksOffline, refineActivitiesOffline } from '@/lib/ai/fallback';
+import { Activity } from '@/types';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -13,11 +15,31 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
  * - Parkinson's Law: cap durations to prevent scope creep
  */
 export async function POST(req: Request) {
+    let fallbackText = "";
+
+    const normalizeParsedActivities = (items: Partial<Activity>[]) => {
+        const activityItems: Activity[] = items.map((item, index) => ({
+            id: item.id || `parsed-${Date.now()}-${index}`,
+            user_id: item.user_id || "u1",
+            name: item.name || "Tugas Baru",
+            target_duration: item.target_duration || 30,
+            priority: item.priority || 3,
+            category: item.category || "Ad-Hoc (Dadakan)",
+            ...(item.preferred_start && { preferred_start: item.preferred_start }),
+        }));
+        return refineActivitiesOffline(activityItems);
+    };
+
     try {
         const { text, userContext } = await req.json();
+        fallbackText = typeof text === "string" ? text : "";
 
         if (!text || typeof text !== 'string') {
             return NextResponse.json({ error: 'Missing or invalid text input.' }, { status: 400 });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return NextResponse.json({ activities: normalizeParsedActivities(parseTasksOffline(text)), mode: "offline" });
         }
 
         // Inject user's wake time for smarter time anchoring
@@ -101,18 +123,25 @@ Kembalikan array JSON yang valid. Jangan tambahkan teks apapun di luar JSON.
             if (!Array.isArray(parsedArray)) {
                 throw new Error("AI returned non-array JSON");
             }
-            return NextResponse.json({ activities: parsedArray });
+            return NextResponse.json({ activities: normalizeParsedActivities(parsedArray) });
         } catch {
             // Attempt regex extraction as fallback
             const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
-                return NextResponse.json({ activities: JSON.parse(jsonMatch[0]) });
+                return NextResponse.json({ activities: normalizeParsedActivities(JSON.parse(jsonMatch[0])) });
             }
             return NextResponse.json({ error: 'AI did not return valid JSON array' }, { status: 500 });
         }
 
     } catch (error: unknown) {
-        console.error('AI NLP Parse Error:', error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        console.warn('AI NLP Parse fell back to offline mode:', error);
+        if (!fallbackText) {
+            return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        }
+        return NextResponse.json({
+            activities: normalizeParsedActivities(parseTasksOffline(fallbackText)),
+            mode: "offline-fallback",
+            warning: "Chroniq AI sedang memakai mode parser lokal."
+        });
     }
 }

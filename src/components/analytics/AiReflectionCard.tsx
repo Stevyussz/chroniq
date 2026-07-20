@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Sparkles, Brain, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Brain, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePoeStore } from "@/store/useStore";
+import { EnergySlot } from "@/types";
+import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
+
+interface ReflectionResponse {
+    reflectionText?: string;
+    suggestedEnergySlots?: EnergySlot[];
+}
 
 export function AiReflectionCard() {
     const { 
@@ -21,7 +28,7 @@ export function AiReflectionCard() {
         resetTimeline
     } = usePoeStore();
     const [reflection, setReflection] = useState<string | null>(aiReflectionText);
-    const [suggestedSlots, setSuggestedSlots] = useState<any[] | null>(aiSuggestedEnergySlots || null);
+    const [suggestedSlots, setSuggestedSlots] = useState<EnergySlot[] | null>(aiSuggestedEnergySlots || null);
     const [isLoading, setIsLoading] = useState(false);
 
     const checkAndFetchReflection = async (force: boolean = false) => {
@@ -57,7 +64,7 @@ export function AiReflectionCard() {
             });
 
             if (response.ok) {
-                const data = await response.json();
+                const data = await response.json() as ReflectionResponse;
                 if (data.reflectionText) {
                     setReflection(data.reflectionText);
                     setSuggestedSlots(data.suggestedEnergySlots || null);
@@ -90,7 +97,7 @@ export function AiReflectionCard() {
 
     const handleApplySuggestion = () => {
         if (!suggestedSlots) return;
-        setEnergySlots(suggestedSlots as any);
+        setEnergySlots(suggestedSlots);
         setAiSuggestedEnergySlots(null); // Clear suggestion after applying
         setSuggestedSlots(null);
         resetTimeline(); // Force scheduler to re-run based on new energy map
@@ -106,7 +113,7 @@ export function AiReflectionCard() {
                     <div className="flex items-center gap-4">
                         <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] text-white rounded-2xl flex items-center justify-center shadow-inner relative overflow-hidden group">
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                            {isLoading ? <Loader2 className="w-7 h-7 text-white animate-spin drop-shadow-sm" /> : <Image src="/icon.png" alt="Chroniq Logo" width={32} height={32} className="drop-shadow-sm group-hover:scale-110 transition-transform" />}
+                            {isLoading ? <ChroniqAiLoader size="md" compact /> : <Image src="/icon.png" alt="Chroniq Logo" width={32} height={32} className="drop-shadow-sm group-hover:scale-110 transition-transform" />}
                         </div>
                         <div>
                             <h3 className="text-xl md:text-2xl font-black text-[#8d6e63] dark:text-[#e4d8cd] flex items-center gap-2 mb-1 tracking-tight transition-colors">
@@ -125,7 +132,7 @@ export function AiReflectionCard() {
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Meracik...
+                                <ChroniqAiLoader size="sm" compact /> Meracik...
                             </>
                         ) : (
                             <>
@@ -140,10 +147,12 @@ export function AiReflectionCard() {
                     <div className="absolute -top-3 -left-2 text-6xl text-[#ffab91] dark:text-[#ff8a65] opacity-20 font-serif leading-none pointer-events-none">&quot;</div>
 
                     {isLoading && !reflection ? (
-                        <div className="space-y-3 relative z-10">
-                            <div className="h-4 bg-[#ffccbc]/40 rounded-full animate-pulse w-3/4"></div>
-                            <div className="h-4 bg-[#ffccbc]/40 rounded-full animate-pulse w-5/6"></div>
-                            <div className="h-4 bg-[#ffccbc]/40 rounded-full animate-pulse w-2/3"></div>
+                        <div className="relative z-10 rounded-xl border border-[#818cf8]/25 bg-[#eef2ff]/65 dark:bg-[#1e1b4b]/35 p-4">
+                            <ChroniqAiLoader
+                                size="md"
+                                label="Chroniq AI membaca pola mingguan"
+                                sublabel="Menggabungkan log fokus, energi, distraksi, dan ritme eksekusi."
+                            />
                         </div>
                     ) : (
                         <div className="text-sm md:text-base text-[#5d4037] dark:text-[#e4d8cd] leading-relaxed whitespace-pre-wrap font-medium relative z-10">

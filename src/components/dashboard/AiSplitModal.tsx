@@ -4,6 +4,7 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Brain } from "lucide-react";
+import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
 
 interface AiSplitModalProps {
     isOpen: boolean;
@@ -38,6 +39,15 @@ export function AiSplitModal({ isOpen, pendingTask, isLoading, onConfirm, onReje
             </CardHeader>
             <CardContent>
                 <div className="bg-white/60 dark:bg-[#2d2d35]/60 backdrop-blur-md rounded-2xl p-5 border border-white/80 dark:border-white/5 shadow-sm mx-6 mb-6 relative z-10 transition-colors">
+                    {isLoading && (
+                        <div className="mb-4 rounded-xl border border-[#818cf8]/25 bg-[#eef2ff]/70 dark:bg-[#1e1b4b]/35 p-3">
+                            <ChroniqAiLoader
+                                size="sm"
+                                label="Chroniq AI memecah tugas"
+                                sublabel="Mencari sprint yang ringan dimulai dan tetap realistis."
+                            />
+                        </div>
+                    )}
                     <p className="text-sm mb-3 font-bold text-[#e64a19] dark:text-[#ffab91] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#ffab91] animate-pulse" /> Strategi AI yang direkomendasikan:</p>
                     <div className="flex flex-col gap-2">
                         <ul className="list-disc pl-5 text-sm text-[#8d6e63] dark:text-[#a19d9b] space-y-2">
@@ -49,7 +59,7 @@ export function AiSplitModal({ isOpen, pendingTask, isLoading, onConfirm, onReje
                     <div className="flex flex-col sm:flex-row gap-3 mt-5">
                         <Button onClick={onConfirm} disabled={isLoading} className="bg-gradient-to-r from-[#ff8a65] to-[#ff7043] rounded-xl font-bold text-white flex-1 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 border-none h-11">
                             {isLoading ? (
-                                <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 animate-spin" /> Meracik sub-tugas...</span>
+                                <span className="flex items-center gap-2"><ChroniqAiLoader size="sm" compact /> Meracik sub-tugas...</span>
                             ) : (
                                 <span className="flex items-center gap-1.5"><Zap className="w-4 h-4 fill-current" /> Pecah dengan AI & Sebarkan</span>
                             )}

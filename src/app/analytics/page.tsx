@@ -113,6 +113,7 @@ export default function AnalyticsPage() {
                     {executionLogs.length === 0 ? (
                         <div className="p-8 text-center text-[#a1887f]">Belum ada riwayat aktivitas.</div>
                     ) : (
+                        <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-[#fffbfa] border-b-2 border-[#efebe9]">
                                 <tr>
@@ -140,6 +141,7 @@ export default function AnalyticsPage() {
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     )}
                 </CardContent>
             </Card>

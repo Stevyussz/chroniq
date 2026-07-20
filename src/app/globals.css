@@ -3,56 +3,41 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Japanese Anime Cozy Light Theme */
-  --background: #fffbfa;
-  /* Soft sakura tinted white paper */
-  --foreground: #5d4037;
-  /* Warm soft brown text */
-  --text-muted: #8d6e63;
-  /* Lighter brown-gray */
+  --background: #f7f8fb;
+  --foreground: #1f2937;
+  --text-muted: #64748b;
 
-  --border-subtle: #efebe9;
+  --border-subtle: #e2e8f0;
 
   /* POE specific colors */
-  --color-energy-peak: #ffab91;
-  /* Soft coral/sakura pink */
-  --color-energy-medium: #ffe082;
-  /* Warm soft amber/yellow */
-  --color-energy-low: #a5d6a7;
-  /* Soft matcha green */
+  --color-energy-peak: #ff6b6b;
+  --color-energy-medium: #f8c14a;
+  --color-energy-low: #35c58b;
 
   /* Accent color */
-  --accent: #ffccbc;
-  /* Soft peach */
+  --accent: #4f46e5;
 
   /* Texture Background */
-  --texture-dot: #d7ccc8;
+  --texture-dot: #d8dee9;
 }
 
 .dark {
-  /* Cozy Night Menu Theme */
-  --background: #1e1e24;
-  /* Deep warm charcoal/midnight */
-  --foreground: #e4d8cd;
-  /* Soft starlight beige */
-  --text-muted: #a19d9b;
-  /* Cool faded stone */
+  --background: #0f172a;
+  --foreground: #e5edf8;
+  --text-muted: #94a3b8;
 
-  --border-subtle: #2d2d35;
+  --border-subtle: #1e293b;
 
   /* Dark mode maintains identical peak/medium colors for brand consistency, 
      but softens them slightly for contrast if necessary, or keeps them. */
-  --color-energy-peak: #ff8a65;
-  /* Slightly deeper coral for contrast */
-  --color-energy-medium: #ffd54f;
-  /* Slightly deeper amber */
-  --color-energy-low: #81c784;
-  /* Slightly deeper matcha */
+  --color-energy-peak: #fb7185;
+  --color-energy-medium: #facc15;
+  --color-energy-low: #34d399;
 
-  --accent: #ffab91;
+  --accent: #818cf8;
 
   /* Texture Background */
-  --texture-dot: #3a3a45;
+  --texture-dot: #263244;
 }
 
 @theme inline {
@@ -66,7 +51,7 @@
   --color-accent: var(--accent);
 }
 
-/* Force mode body style with subtle diary/notebook pattern */
+/* Force mode body style with a quiet product surface */
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -78,7 +63,7 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Elegant and calm animated background texture */
+/* Subtle grid texture for a focused, dashboard-like surface */
 body::before {
   content: "";
   position: fixed;
@@ -87,25 +72,16 @@ body::before {
   width: 200%;
   height: 200%;
   z-index: -1;
-  background-image: radial-gradient(var(--texture-dot) 2px, transparent 2px);
-  background-size: 32px 32px;
-  animation: drift 150s linear infinite;
-  opacity: 0.4;
+  background-image:
+    linear-gradient(var(--texture-dot) 1px, transparent 1px),
+    linear-gradient(90deg, var(--texture-dot) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.22;
   pointer-events: none;
   transition: background-image 0.3s ease;
 }
 
-@keyframes drift {
-  0% {
-    transform: rotate(0deg) translate(0, 0);
-  }
-
-  100% {
-    transform: rotate(360deg) translate(50px, 50px);
-  }
-}
-
-/* Base styles for scrollbars to look cute */
+/* Base styles for scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -122,4 +98,109 @@ body::before {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+.chroniq-ai-core {
+  display: grid;
+  place-items: center;
+  animation: chroniq-ai-float 2.4s ease-in-out infinite;
+  box-shadow: 0 0 24px rgba(129, 140, 248, 0.18), 0 0 42px rgba(255, 138, 101, 0.12);
+}
+
+.chroniq-ai-core::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  animation: chroniq-ai-orbit 2.6s linear infinite;
+}
+
+.chroniq-ai-scan {
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(129, 140, 248, 0.28) 48%, transparent 100%),
+    radial-gradient(circle at 50% 15%, rgba(255, 204, 188, 0.24), transparent 45%);
+  animation: chroniq-ai-scan 1.6s ease-in-out infinite;
+}
+
+.chroniq-ai-spark {
+  animation: chroniq-ai-spark 1.4s ease-in-out infinite;
+}
+
+.chroniq-ai-dot {
+  display: inline-block;
+  animation: chroniq-ai-dot 900ms ease-in-out infinite;
+}
+
+@keyframes chroniq-ai-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+@keyframes chroniq-ai-orbit {
+  0% {
+    transform: rotate(0deg) scale(0.94);
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.75;
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1.04);
+    opacity: 0.35;
+  }
+}
+
+@keyframes chroniq-ai-scan {
+  0%, 100% {
+    transform: translateY(-14%);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: translateY(14%);
+    opacity: 0.9;
+  }
+}
+
+@keyframes chroniq-ai-spark {
+  0%, 100% {
+    transform: scale(0.82) rotate(0deg);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scale(1.15) rotate(18deg);
+    opacity: 1;
+  }
+}
+
+@keyframes chroniq-ai-dot {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chroniq-ai-core,
+  .chroniq-ai-core::before,
+  .chroniq-ai-scan,
+  .chroniq-ai-spark,
+  .chroniq-ai-dot {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
 }

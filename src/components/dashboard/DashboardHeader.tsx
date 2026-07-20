@@ -3,6 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Settings, Clock, Sparkles, RotateCcw } from "lucide-react";
+import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
 
 interface DashboardHeaderProps {
     level: number;
@@ -56,7 +57,7 @@ export function DashboardHeader({
                     </p>
                 )}
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex w-full md:w-auto flex-wrap gap-2.5">
                 <Button
                     variant="outline"
                     onClick={() => {
@@ -64,17 +65,17 @@ export function DashboardHeader({
                             handleResetTimeline();
                         }
                     }}
-                    className="bg-white/50 dark:bg-[#2d2d35]/50 backdrop-blur-sm text-[#d9534f] dark:text-[#ff8a80] border-2 border-[#ffb7b2]/60 dark:border-[#d9534f]/30 hover:bg-[#ffebee]/80 dark:hover:bg-[#d9534f]/20 rounded-full shadow-sm hover:-translate-y-0.5 transition-all text-xs font-semibold px-3 hidden md:flex"
+                    className="bg-white/50 dark:bg-[#2d2d35]/50 backdrop-blur-sm text-[#d9534f] dark:text-[#ff8a80] border-2 border-[#ffb7b2]/60 dark:border-[#d9534f]/30 hover:bg-[#ffebee]/80 dark:hover:bg-[#d9534f]/20 shadow-sm hover:-translate-y-0.5 transition-all text-xs font-semibold px-3 hidden md:flex"
                 >
                     <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
                 </Button>
                 <Button
                     onClick={handleReoptimize}
                     disabled={isReoptimizing}
-                    className="bg-white/50 dark:bg-[#2d2d35]/50 backdrop-blur-sm text-[#ff8a65] dark:text-[#ffab91] border-2 border-[#ffccbc]/60 dark:border-[#ff8a65]/30 hover:bg-[#fff3e0]/80 dark:hover:bg-[#ff8a65]/20 rounded-full shadow-sm hover:-translate-y-0.5 transition-all w-[180px]"
+                    className="bg-white/50 dark:bg-[#2d2d35]/50 backdrop-blur-sm text-[#ff8a65] dark:text-[#ffab91] border-2 border-[#ffccbc]/60 dark:border-[#ff8a65]/30 hover:bg-[#fff3e0]/80 dark:hover:bg-[#ff8a65]/20 shadow-sm hover:-translate-y-0.5 transition-all flex-1 sm:flex-none sm:w-[190px]"
                 >
                     {isReoptimizing ? (
-                        <span className="flex items-center gap-2 animate-pulse"><Sparkles className="w-4 h-4" /> AI Meracik...</span>
+                        <span className="flex items-center gap-2"><ChroniqAiLoader size="sm" compact /> AI Meracik...</span>
                     ) : (
                         <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Re-Optimize & Evolve</span>
                     )}
@@ -83,7 +84,8 @@ export function DashboardHeader({
                     variant="outline"
                     size="icon"
                     onClick={() => setShowSettings(!showSettings)}
-                    className="rounded-full shadow-sm border-[#ffccbc] dark:border-[#ff8a65]/30 text-[#bf360c] dark:text-[#ffab91] hover:bg-[#ffebee] dark:hover:bg-[#ff8a65]/20 bg-transparent"
+                    className="shadow-sm border-[#ffccbc] dark:border-[#ff8a65]/30 text-[#bf360c] dark:text-[#ffab91] hover:bg-[#ffebee] dark:hover:bg-[#ff8a65]/20 bg-transparent"
+                    aria-label="Buka pengaturan"
                 >
                     <Settings className="w-4 h-4" />
                 </Button>

@@ -9,25 +9,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffccbc] disabled:pointer-events-none disabled:opacity-50 active:scale-95",
+    "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#c7d2fe] disabled:pointer-events-none disabled:opacity-50 active:scale-95",
     {
         variants: {
             variant: {
                 default:
-                    "bg-[#ffab91] dark:bg-[#ff8a65] text-white shadow-[0_4px_14px_0_rgba(255,171,145,0.39)] dark:shadow-none hover:bg-[#ff8a65] dark:hover:bg-[#ffb74d] hover:shadow-[0_6px_20px_rgba(255,171,145,0.23)] dark:hover:shadow-none hover:-translate-y-0.5",
+                    "bg-[#4f46e5] dark:bg-[#818cf8] text-white dark:text-[#111827] shadow-[0_4px_14px_0_rgba(79,70,229,0.24)] dark:shadow-none hover:bg-[#4338ca] dark:hover:bg-[#a5b4fc] hover:shadow-[0_6px_20px_rgba(79,70,229,0.2)] dark:hover:shadow-none hover:-translate-y-0.5",
                 destructive:
-                    "bg-[#ef5350] dark:bg-[#d32f2f] text-white shadow-sm hover:bg-[#e53935] dark:hover:bg-[#b71c1c] hover:-translate-y-0.5",
+                    "bg-[#ef4444] dark:bg-[#f87171] text-white shadow-sm hover:bg-[#dc2626] dark:hover:bg-[#fca5a5] hover:-translate-y-0.5",
                 outline:
-                    "border-2 border-[#ffccbc] dark:border-[#ff8a65]/30 bg-transparent text-[#ff8a65] dark:text-[#ffab91] hover:bg-[#fff3e0] dark:hover:bg-[#ff8a65]/10 hover:-translate-y-0.5",
+                    "border border-[#cbd5e1] dark:border-[#334155] bg-white/70 dark:bg-[#0f172a]/50 text-[#334155] dark:text-[#dbeafe] hover:bg-[#eef2ff] dark:hover:bg-[#1e293b] hover:-translate-y-0.5",
                 secondary:
-                    "bg-[#a5d6a7] dark:bg-[#81c784]/20 text-[#1b5e20] dark:text-[#81c784] shadow-sm hover:bg-[#81c784] dark:hover:bg-[#81c784]/40 hover:-translate-y-0.5",
-                ghost: "text-[#8d6e63] dark:text-[#a19d9b] hover:bg-[#efebe9] dark:hover:bg-[#2d2d35] hover:text-[#5d4037] dark:hover:text-[#e4d8cd]",
-                link: "text-[#ff8a65] dark:text-[#ffab91] underline-offset-4 hover:underline",
+                    "bg-[#d1fae5] dark:bg-[#064e3b]/50 text-[#047857] dark:text-[#a7f3d0] shadow-sm hover:bg-[#a7f3d0] dark:hover:bg-[#065f46] hover:-translate-y-0.5",
+                ghost: "text-[#64748b] dark:text-[#94a3b8] hover:bg-[#e2e8f0] dark:hover:bg-[#1e293b] hover:text-[#1f2937] dark:hover:text-[#e5edf8]",
+                link: "text-[#4f46e5] dark:text-[#a5b4fc] underline-offset-4 hover:underline",
             },
             size: {
                 default: "h-12 px-6 py-2",
-                sm: "h-9 rounded-full px-4 text-xs",
-                lg: "h-14 rounded-full px-10 text-base",
+                sm: "h-9 rounded-lg px-4 text-xs",
+                lg: "h-14 rounded-lg px-10 text-base",
                 icon: "h-12 w-12",
             },
         },

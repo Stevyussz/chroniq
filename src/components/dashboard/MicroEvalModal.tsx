@@ -3,8 +3,7 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ClipboardEdit } from "lucide-react";
+import { ClipboardEdit, Minus, Plus } from "lucide-react";
 
 interface MicroEvalModalProps {
     evalBlockId: string | null;
@@ -36,39 +35,69 @@ export function MicroEvalModal({
                     <CardTitle className="flex items-center gap-2 text-[#5d4037] dark:text-[#e4d8cd]"><ClipboardEdit className="w-5 h-5 text-[#66bb6a] dark:text-[#81c784]" /> Micro Evaluation</CardTitle>
                     <CardDescription className="dark:text-[#a19d9b]">Beri rate singkat kualitas kerja Anda barusan.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 items-end text-[#5d4037] dark:text-[#d7ccc8]">
+                <CardContent className="grid gap-5 items-end text-[#5d4037] dark:text-[#d7ccc8]">
                     <div>
                         <label className="text-sm font-bold mb-2 block">Focus Score (1-5)</label>
-                        <Input
-                            type="number"
-                            min={1}
-                            max={5}
-                            value={focusScore}
-                            onChange={e => setFocusScore(Number(e.target.value))}
-                            className="dark:bg-[#25352c] dark:border-[#4caf50]/30 dark:text-[#e4d8cd]"
-                        />
+                        <div className="grid grid-cols-5 gap-2">
+                            {[1, 2, 3, 4, 5].map((score) => (
+                                <Button
+                                    key={score}
+                                    type="button"
+                                    variant={focusScore === score ? "default" : "outline"}
+                                    onClick={() => setFocusScore(score)}
+                                    className="h-11 px-0"
+                                    aria-pressed={focusScore === score}
+                                >
+                                    {score}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
                     <div>
                         <label className="text-sm font-medium mb-1 block">Energy After</label>
-                        <select
-                            className="flex h-12 w-full rounded-2xl border-2 border-[#efebe9] dark:border-[#4caf50]/30 bg-white dark:bg-[#25352c] px-4 py-2 text-sm text-[#5d4037] dark:text-[#e4d8cd] shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffccbc] dark:focus-visible:ring-[#81c784]/50 transition-colors"
-                            value={energyAfter}
-                            onChange={e => setEnergyAfter(e.target.value as "up" | "same" | "down")}
-                        >
-                            <option value="up">Naik (Up)</option>
-                            <option value="same">Tetap (Same)</option>
-                            <option value="down">Turun (Down)</option>
-                        </select>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[
+                                { value: "up", label: "Naik" },
+                                { value: "same", label: "Tetap" },
+                                { value: "down", label: "Turun" },
+                            ].map((option) => (
+                                <Button
+                                    key={option.value}
+                                    type="button"
+                                    variant={energyAfter === option.value ? "secondary" : "outline"}
+                                    onClick={() => setEnergyAfter(option.value as "up" | "same" | "down")}
+                                    aria-pressed={energyAfter === option.value}
+                                >
+                                    {option.label}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Jumlah Distraksi</label>
-                        <Input
-                            type="number"
-                            min={0}
-                            value={distractions}
-                            onChange={e => setDistractions(Number(e.target.value))}
-                            className="dark:bg-[#25352c] dark:border-[#4caf50]/30 dark:text-[#e4d8cd]"
-                        />
+                        <label className="text-sm font-medium mb-2 block">Jumlah Distraksi</label>
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-[#cbd5e1] dark:border-[#4caf50]/30 bg-white dark:bg-[#25352c] p-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10"
+                                onClick={() => setDistractions(Math.max(0, distractions - 1))}
+                                aria-label="Kurangi distraksi"
+                            >
+                                <Minus className="w-4 h-4" />
+                            </Button>
+                            <span className="font-mono text-2xl font-bold min-w-12 text-center">{distractions}</span>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10"
+                                onClick={() => setDistractions(distractions + 1)}
+                                aria-label="Tambah distraksi"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
                 <CardContent>

@@ -194,7 +194,7 @@ export function TimelineView({
 
                                                 {!isCompleted && !isSkipped && block.type === "activity" && activeBlockId !== block.id && !evalBlockId && (
                                                     <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
-                                                        <Button size="sm" variant="ghost" className="flex-none text-[#a1887f] dark:text-[#a19d9b] hover:text-[#d32f2f] dark:hover:text-[#ff8a80] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 rounded-xl h-9 px-3 transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeleteBlock && onDeleteBlock(block.activity_id)}>
+                                                        <Button size="sm" variant="ghost" className="flex-none text-[#a1887f] dark:text-[#a19d9b] hover:text-[#d32f2f] dark:hover:text-[#ff8a80] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 rounded-lg h-9 px-3 transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeleteBlock && onDeleteBlock(block.activity_id)} aria-label={`Hapus ${getActName(block.activity_id, block.type)}`}>
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                         <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-[#ef5350] dark:text-[#ff8a80] hover:text-[#c62828] dark:hover:text-[#d32f2f] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 font-bold rounded-xl transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSkip(block.id)}>Skip</Button>

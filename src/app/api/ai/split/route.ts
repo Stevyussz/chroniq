@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { splitTaskOffline } from '@/lib/ai/fallback';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -14,11 +15,20 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
  * - Implementation Intentions (Gollwitzer, 1999): "what first?" reduces procrastination
  */
 export async function POST(req: Request) {
+    let fallbackTaskName = "";
+    let fallbackTargetDuration = 0;
+
     try {
         const { taskName, targetDuration, category } = await req.json();
+        fallbackTaskName = typeof taskName === "string" ? taskName : "";
+        fallbackTargetDuration = Number(targetDuration);
 
         if (!taskName || !targetDuration) {
             return NextResponse.json({ error: 'Missing task parameters.' }, { status: 400 });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return NextResponse.json({ subtasks: splitTaskOffline(taskName, Number(targetDuration)), mode: "offline" });
         }
 
         const model = genAI.getGenerativeModel({
@@ -86,7 +96,14 @@ Kembalikan JSON array yang valid.
         }
 
     } catch (error: unknown) {
-        console.error('AI Split Error:', error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        console.warn('AI Split fell back to offline mode:', error);
+        if (!fallbackTaskName || !fallbackTargetDuration) {
+            return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        }
+        return NextResponse.json({
+            subtasks: splitTaskOffline(fallbackTaskName, fallbackTargetDuration),
+            mode: "offline-fallback",
+            warning: "Chroniq AI sedang memakai mode split lokal."
+        });
     }
 }
