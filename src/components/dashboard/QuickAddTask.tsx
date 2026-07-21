@@ -14,6 +14,24 @@ interface QuickAddTaskProps {
     onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string }) => void;
 }
 
+function SuccessToast({ message }: { message: string }) {
+    return (
+        <AnimatePresence>
+            {message && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                    className="absolute -top-14 left-0 right-0 mx-auto w-max z-50 flex items-center gap-2 bg-[#4caf50] dark:bg-[#388e3c] text-white px-4 py-2 rounded-full shadow-lg font-medium text-sm"
+                >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {message}
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+}
+
 export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
     const [isManualExpanded, setIsManualExpanded] = useState(false);
     const [isAiExpanded, setIsAiExpanded] = useState(false);
@@ -70,26 +88,10 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
         showSuccess(`${activities.length} tugas berhasil ditambahkan dari AI!`);
     };
 
-    const SuccessToast = () => (
-        <AnimatePresence>
-            {successMessage && (
-                <motion.div
-                    initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                    className="absolute -top-14 left-0 right-0 mx-auto w-max z-50 flex items-center gap-2 bg-[#4caf50] dark:bg-[#388e3c] text-white px-4 py-2 rounded-full shadow-lg font-medium text-sm"
-                >
-                    <CheckCircle2 className="w-4 h-4" />
-                    {successMessage}
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
-
     if (!isAiExpanded) {
         return (
             <div className="relative">
-                <SuccessToast />
+                <SuccessToast message={successMessage} />
                 <Button
                     onClick={() => setIsAiExpanded(true)}
                     className="w-full h-14 bg-white/40 dark:bg-[#2d2d35]/40 backdrop-blur-md border-2 border-dashed border-[#ffccbc]/80 dark:border-[#ff8a65]/40 hover:bg-white/60 dark:hover:bg-[#2d2d35]/70 hover:border-[#ffab91] dark:hover:border-[#ff8a65] text-[#8d6e63] dark:text-[#a19d9b] hover:text-[#5d4037] dark:hover:text-[#e4d8cd] font-bold rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-3"
@@ -106,7 +108,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
 
     return (
         <div className="relative">
-            <SuccessToast />
+            <SuccessToast message={successMessage} />
             <Card className="bg-white/40 dark:bg-[#1e1e24]/40 backdrop-blur-md border-2 border-[#ffab91]/40 dark:border-[#ff8a65]/30 shadow-sm relative overflow-visible rounded-3xl animate-in fade-in zoom-in-95 duration-200 transition-colors">
             {/* Close button mapping for Expanded View */}
             <Button

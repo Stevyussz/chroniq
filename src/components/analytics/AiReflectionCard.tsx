@@ -107,30 +107,29 @@ export function AiReflectionCard() {
     };
 
     return (
-        <Card className="bg-gradient-to-br from-[#fffbfa] dark:from-[#1e1e24] to-[#fff5f2] dark:to-[#2d2d35] border-2 border-[#ffab91]/50 dark:border-[#ff8a65]/20 shadow-md shadow-[#ffab91]/10 dark:shadow-none overflow-hidden mb-8 relative rounded-3xl transition-colors">
-            {/* Decorative Gradient Blob */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#ffab91]/20 dark:from-[#ff8a65]/10 to-transparent blur-3xl pointer-events-none rounded-bl-full transition-colors"></div>
+        <Card className="overflow-hidden border-[#c7d2fe]/70 bg-white/82 shadow-sm dark:border-[#818cf8]/20 dark:bg-[#111827]/75">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4f46e5] via-[#ff8a65] to-[#34d399]" />
 
-            <CardContent className="p-6 md:p-8 relative z-10">
+            <CardContent className="relative z-10 p-5 sm:p-6 md:p-7">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#ffab91] to-[#ffccbc] text-white rounded-2xl flex items-center justify-center shadow-inner relative overflow-hidden group">
+                        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#4f46e5] to-[#ff8a65] text-white rounded-xl flex items-center justify-center shadow-inner relative overflow-hidden group">
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                             {isLoading ? <ChroniqAiLoader size="md" compact /> : <Image src="/icon.png" alt="Chroniq Logo" width={32} height={32} className="drop-shadow-sm group-hover:scale-110 transition-transform" />}
                         </div>
                         <div>
-                            <h3 className="text-xl md:text-2xl font-black text-[#8d6e63] dark:text-[#e4d8cd] flex items-center gap-2 mb-1 tracking-tight transition-colors">
-                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] dark:from-[#ffb74d] to-[#f57c00] dark:to-[#ff8a65]">Chroniq</span> AI Insight
-                                <Sparkles className="w-5 h-5 text-[#ffab91] dark:text-[#ff8a65] animate-pulse" />
+                            <h3 className="text-xl md:text-2xl font-black text-[#1f2937] dark:text-[#e5edf8] flex items-center gap-2 mb-1 tracking-tight transition-colors">
+                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#4f46e5] to-[#ff8a65]">Chroniq</span> AI Insight
+                                <Sparkles className="w-5 h-5 text-[#818cf8] animate-pulse" />
                             </h3>
-                            <p className="text-xs font-bold text-[#ff8a65] dark:text-[#ffab91] uppercase tracking-wider transition-colors">Weekly Reflection Protocol</p>
+                            <p className="text-xs font-bold text-[#64748b] dark:text-[#94a3b8] uppercase tracking-wider transition-colors">Weekly Reflection Protocol</p>
                         </div>
                     </div>
 
                     <Button
                         onClick={handleManualRegenerate}
                         disabled={isLoading || executionLogs.length < 3}
-                        className="bg-white/60 dark:bg-[#1e1e24]/60 backdrop-blur-sm text-[#ff8a65] dark:text-[#ffab91] hover:bg-[#fff5f2] dark:hover:bg-[#ff8a65]/20 hover:text-[#e64a19] dark:hover:text-[#ffccbc] border border-[#ffccbc] dark:border-[#ff8a65]/30 rounded-xl self-start text-xs font-semibold px-4 h-9 shadow-sm transition-colors"
+                        className="self-start border-[#c7d2fe] bg-white/70 px-4 text-xs font-semibold text-[#4f46e5] shadow-sm hover:bg-[#eef2ff] dark:border-[#818cf8]/30 dark:bg-[#1e1b4b]/30 dark:text-[#c7d2fe] dark:hover:bg-[#312e81]/35"
                         variant="outline"
                     >
                         {isLoading ? (
@@ -145,9 +144,9 @@ export function AiReflectionCard() {
                     </Button>
                 </div>
 
-                <div className="bg-white/60 dark:bg-[#2d2d35]/60 backdrop-blur-md rounded-2xl p-5 border border-white/80 dark:border-white/10 shadow-sm relative transition-colors">
+                <div className="bg-[#f8fafc]/85 dark:bg-[#0f172a]/70 backdrop-blur-md rounded-xl p-5 border border-[#e2e8f0] dark:border-[#1e293b] shadow-sm relative transition-colors">
                     {/* Quotation Marks Decoration */}
-                    <div className="absolute -top-3 -left-2 text-6xl text-[#ffab91] dark:text-[#ff8a65] opacity-20 font-serif leading-none pointer-events-none">&quot;</div>
+                    <div className="absolute -top-3 -left-2 text-6xl text-[#818cf8] opacity-20 font-serif leading-none pointer-events-none">&quot;</div>
 
                     {isLoading && !reflection ? (
                         <div className="relative z-10 rounded-xl border border-[#818cf8]/25 bg-[#eef2ff]/65 dark:bg-[#1e1b4b]/35 p-4">
@@ -158,7 +157,7 @@ export function AiReflectionCard() {
                             />
                         </div>
                     ) : (
-                        <div className="text-sm md:text-base text-[#5d4037] dark:text-[#e4d8cd] leading-relaxed whitespace-pre-wrap font-medium relative z-10">
+                        <div className="text-sm md:text-base text-[#334155] dark:text-[#cbd5e1] leading-relaxed whitespace-pre-wrap font-medium relative z-10">
                             {reflection}
                         </div>
                     )}
@@ -166,19 +165,19 @@ export function AiReflectionCard() {
 
                 {/* --- AI AUTO TUNING SUGGESTION ALERT --- */}
                 {suggestedSlots && suggestedSlots.length > 0 && !isLoading && (
-                    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#ffe0b2]/50 dark:from-[#ffb74d]/20 to-[#ffccbc]/50 dark:to-[#ff8a65]/20 border border-[#ffb74d]/40 dark:border-[#ff8a65]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
+                    <div className="mt-4 p-4 rounded-xl bg-[#eef2ff]/80 dark:bg-[#1e1b4b]/35 border border-[#c7d2fe] dark:border-[#818cf8]/25 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
                         <div className="flex-1">
-                            <h4 className="text-sm font-bold text-[#e65100] dark:text-[#ffb74d] flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-bold text-[#4f46e5] dark:text-[#c7d2fe] flex items-center gap-2 mb-1">
                                 <Brain className="w-4 h-4" /> Saran Tuning Jam Biologis
                             </h4>
-                            <p className="text-xs text-[#5d4037] dark:text-[#e4d8cd]">
+                            <p className="text-xs text-[#334155] dark:text-[#cbd5e1]">
                                 AI merekomendasikan perubahan jam energi untuk optimisasi otomatis. 
                                 Peak: {suggestedSlots.find(s => s.energy_level === 'peak')?.start_time} - {suggestedSlots.find(s => s.energy_level === 'peak')?.end_time}.
                             </p>
                         </div>
                         <Button
                             onClick={handleApplySuggestion}
-                            className="w-full md:w-auto bg-[#ff8a65] hover:bg-[#e64a19] text-white shadow-md rounded-xl text-xs font-bold px-5 h-9"
+                            className="w-full md:w-auto text-xs font-bold px-5 h-9"
                         >
                             <Sparkles className="w-3.5 h-3.5 mr-2" /> Terapkan Saran AI
                         </Button>
@@ -186,10 +185,10 @@ export function AiReflectionCard() {
                 )}
 
                 {!isLoading && (
-                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold text-[#a1887f] dark:text-[#a19d9b] uppercase tracking-wide">
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold text-[#64748b] dark:text-[#94a3b8] uppercase tracking-wide">
                         <div className="flex items-center gap-2">
-                            <span className="bg-[#fffdf5] dark:bg-[#1e1e24] px-2.5 py-1 rounded-md border border-[#efebe9] dark:border-white/10">Chroniq Lv. {level}</span>
-                            <span className="bg-[#fffdf5] dark:bg-[#1e1e24] px-2.5 py-1 rounded-md border border-[#efebe9] dark:border-white/10">{exp} EXP</span>
+                            <span className="bg-[#f8fafc] dark:bg-[#0f172a] px-2.5 py-1 rounded-md border border-[#e2e8f0] dark:border-[#1e293b]">Chroniq Lv. {level}</span>
+                            <span className="bg-[#f8fafc] dark:bg-[#0f172a] px-2.5 py-1 rounded-md border border-[#e2e8f0] dark:border-[#1e293b]">{exp} EXP</span>
                         </div>
                         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 text-right">
                             <span>Siklus Data: {Math.min(executionLogs.length, 30)} Log Terakhir</span>
