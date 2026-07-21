@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { parseTasksOffline, refineActivitiesOffline } from '@/lib/ai/fallback';
-import { Activity } from '@/types';
+import { extractJsonPayload, hasChroniqAiKey, normalizeAiActivities, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -17,19 +17,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 export async function POST(req: Request) {
     let fallbackText = "";
 
-    const normalizeParsedActivities = (items: Partial<Activity>[]) => {
-        const activityItems: Activity[] = items.map((item, index) => ({
-            id: item.id || `parsed-${Date.now()}-${index}`,
-            user_id: item.user_id || "u1",
-            name: item.name || "Tugas Baru",
-            target_duration: item.target_duration || 30,
-            priority: item.priority || 3,
-            category: item.category || "Ad-Hoc (Dadakan)",
-            ...(item.preferred_start && { preferred_start: item.preferred_start }),
-            recurrence: (item.recurrence as 'none' | 'daily' | 'weekly' | 'weekdays') || 'none',
-            ...(item.deadline && { deadline: item.deadline }),
-        }));
-        return refineActivitiesOffline(activityItems);
+    const normalizeParsedActivities = (items: unknown[]) => {
+        return refineActivitiesOffline(normalizeAiActivities(items));
     };
 
     try {
@@ -40,7 +29,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing or invalid text input.' }, { status: 400 });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!hasChroniqAiKey()) {
             return NextResponse.json({ activities: normalizeParsedActivities(parseTasksOffline(text)), mode: "offline" });
         }
 
@@ -140,22 +129,24 @@ Input user:
 Kembalikan array JSON yang valid. Jangan tambahkan teks apapun di luar JSON.
 `;
 
-        const result = await model.generateContent(prompt);
-        const textResponse = result.response.text();
+        const textResponse = await retryChroniqAi(async () => {
+            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI parser");
+            return readAiText(result, "Chroniq AI parser");
+        }, "Chroniq AI parser");
 
         try {
-            const parsedArray = JSON.parse(textResponse);
+            const parsedArray = extractJsonPayload<unknown[]>(textResponse, "array");
             if (!Array.isArray(parsedArray)) {
                 throw new Error("AI returned non-array JSON");
             }
             return NextResponse.json({ activities: normalizeParsedActivities(parsedArray) });
-        } catch {
-            // Attempt regex extraction as fallback
-            const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                return NextResponse.json({ activities: normalizeParsedActivities(JSON.parse(jsonMatch[0])) });
-            }
-            return NextResponse.json({ error: 'AI did not return valid JSON array' }, { status: 500 });
+        } catch (parseError) {
+            console.warn("Chroniq AI parser returned invalid JSON, using local parser:", parseError);
+            return NextResponse.json({
+                activities: normalizeParsedActivities(parseTasksOffline(text)),
+                mode: "offline-fallback",
+                warning: "Chroniq AI sedang memakai mode parser lokal."
+            });
         }
 
     } catch (error: unknown) {

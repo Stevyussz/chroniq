@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { buildOfflineCoachReply } from '@/lib/ai/fallback';
+import { hasChroniqAiKey, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -10,16 +12,22 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 // - Motivational Interviewing (Miller & Rollnick): empathetic, non-judgmental tone
 // - Cognitive Load Theory (Sweller): break complex tasks, don't overwhelm
 export async function POST(req: Request) {
+    let fallbackMessages: { role: string; content: string }[] = [];
+    let fallbackContext: Record<string, unknown> | undefined;
+
     try {
         const { messages, context } = await req.json();
+        fallbackMessages = Array.isArray(messages) ? messages : [];
+        fallbackContext = context;
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Messages array is required' }, { status: 400 });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!hasChroniqAiKey()) {
             return NextResponse.json({
-                reply: "Mode AI offline aktif, jadi aku belum bisa ngobrol penuh. Kamu tetap bisa tambah tugas lewat dashboard, dan Chroniq akan menyusun timeline dengan engine lokal."
+                reply: buildOfflineCoachReply(messages, context),
+                mode: "offline"
             });
         }
 
@@ -100,16 +108,20 @@ FILOSOFI: "Sistem yang baik melayani ritme biologis manusia, bukan sebaliknya."`
             }
         }
 
-        const chatSession = model.startChat({ history: formattedHistory });
-        const result = await chatSession.sendMessage(lastUserPrompt);
-        const textResponse = result.response.text();
+        const textResponse = await retryChroniqAi(async () => {
+            const chatSession = model.startChat({ history: formattedHistory });
+            const result = await withAiTimeout(chatSession.sendMessage(lastUserPrompt), "Chroniq AI chat");
+            return readAiText(result, "Chroniq AI chat");
+        }, "Chroniq AI chat");
 
         return NextResponse.json({ reply: textResponse });
 
     } catch (error: unknown) {
         console.warn('AI Chat fell back to offline mode:', error);
         return NextResponse.json({
-            reply: "Chroniq AI sedang masuk mode offline dulu. Untuk sementara, tambah tugas lewat Dashboard atau re-optimize dengan engine lokal Chroniq tetap bisa jalan."
+            reply: buildOfflineCoachReply(fallbackMessages, fallbackContext),
+            mode: "offline-fallback",
+            warning: "Chroniq AI sedang memakai mode coach lokal."
         });
     }
 }

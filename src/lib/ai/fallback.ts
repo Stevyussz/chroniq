@@ -84,6 +84,43 @@ export function inferPreferredStart(text: string): string | undefined {
     return undefined;
 }
 
+export function inferDeadline(text: string): string | undefined {
+    const lower = text.toLowerCase();
+    const today = new Date();
+    const addDays = (days: number) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() + days);
+        return date.toISOString().split("T")[0];
+    };
+
+    if (/\bbesok\b/.test(lower)) return addDays(1);
+    if (/\blusa\b/.test(lower)) return addDays(2);
+
+    const dayNames: Record<string, number> = {
+        minggu: 0,
+        senin: 1,
+        selasa: 2,
+        rabu: 3,
+        kamis: 4,
+        jumat: 5,
+        jumaat: 5,
+        sabtu: 6,
+    };
+
+    const dayMatch = lower.match(/\b(minggu|senin|selasa|rabu|kamis|jumat|jumaat|sabtu)\b/);
+    if (dayMatch) {
+        const targetDay = dayNames[dayMatch[1]];
+        const currentDay = today.getDay();
+        const daysUntil = (targetDay - currentDay + 7) % 7 || 7;
+        return addDays(daysUntil);
+    }
+
+    const isoMatch = lower.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+    if (isoMatch) return isoMatch[1];
+
+    return undefined;
+}
+
 export function splitOversizedActivity(activity: Activity): Activity[] {
     const duration = clampDuration(activity.target_duration);
     if (duration <= 90) return [{ ...activity, target_duration: duration, priority: clampPriority(activity.priority), category: normalizeCategory(activity.category) }];
@@ -115,6 +152,7 @@ export function parseTasksOffline(text: string): Partial<Activity>[] {
         const priority = inferPriority(part, category);
         const duration = inferDuration(part);
         const preferred_start = inferPreferredStart(part);
+        const deadline = inferDeadline(part);
 
         const baseActivity: Activity = {
             id: `offline-${Date.now()}-${index}`,
@@ -124,6 +162,8 @@ export function parseTasksOffline(text: string): Partial<Activity>[] {
             priority,
             category,
             ...(preferred_start && { preferred_start }),
+            recurrence: "none",
+            ...(deadline && { deadline }),
         };
 
         return splitOversizedActivity(baseActivity);
@@ -156,12 +196,15 @@ export function refineActivitiesOffline(activities: Activity[]): Activity[] {
 
 export function splitTaskOffline(taskName: string, targetDuration: number) {
     const total = clampDuration(targetDuration);
-    const chunks = Math.max(2, Math.ceil(total / 60));
+    const chunks = Math.max(1, Math.ceil(total / 60));
+    const baseDuration = Math.floor(total / chunks);
+    const remainder = total % chunks;
+
     return Array.from({ length: chunks }, (_, index) => {
-        const remaining = total - (index * 60);
+        const duration = baseDuration + (index < remainder ? 1 : 0);
         return {
             name: `${taskName} - Fokus ${index + 1}`,
-            duration: Math.min(60, remaining),
+            duration: Math.max(5, duration),
             tip: index === 0
                 ? "Mulai dari bagian termudah supaya momentum cepat naik."
                 : "Tutup distraksi dan lanjutkan dari output sesi sebelumnya.",
@@ -190,4 +233,69 @@ export function buildOfflineReflection(logs: ExecutionLog[], energySlots: Energy
         moodLabel: avgFocus >= 4 ? "Stabil dan konsisten" : "Sedang membangun ritme",
         suggestedEnergySlots: energySlots.length === 3 ? [] : energySlots,
     };
+}
+
+export function buildOfflineCoachReply(messages: { role: string; content: string }[], context?: Record<string, unknown>) {
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === "user")?.content || "";
+    const lower = lastUserMessage.toLowerCase();
+    const level = Number(context?.level || 1);
+    const streak = Number(context?.currentStreak || 0);
+    const upcomingTasks = Number(context?.upcomingTasksCount || 0);
+
+    if (/(optimasi|optimize|re-?optimize|atur ulang|susun ulang|jadwal ulang)/.test(lower)) {
+        return `Siap, aku susun ulang jadwalmu dengan ritme yang lebih realistis. ${upcomingTasks > 0 ? `Ada ${upcomingTasks} blok aktif yang akan aku rapikan.` : "Kalau belum ada tugas aktif, tambahkan satu dulu ya."}
+
+\`\`\`json
+{ "action": "REOPTIMIZE", "payload": {} }
+\`\`\``;
+    }
+
+    if (/(hapus|delete|buang|remove)/.test(lower)) {
+        const name = lastUserMessage
+            .replace(/hapus|delete|buang|remove|tugas|aktivitas/gi, "")
+            .trim();
+
+        if (name) {
+            return `Oke, aku coba hapus tugas yang paling cocok dengan "${name}" dari daftar kamu.
+
+\`\`\`json
+${JSON.stringify({ action: "DELETE_TASK", payload: { name } })}
+\`\`\``;
+        }
+    }
+
+    if (/(tambah|add|jadwalkan|masukin|catat|buat tugas)/.test(lower)) {
+        const cleanedName = lastUserMessage
+            .replace(/tambah|add|jadwalkan|masukin|catat|buat tugas|tugas/gi, "")
+            .replace(/\b(prioritas|priority)\s*[1-5]\b/gi, "")
+            .replace(/\b\d+\s*(jam|menit|mnt|min)\b/gi, "")
+            .trim() || "Tugas Baru";
+        const category = inferCategory(cleanedName);
+        const duration = inferDuration(lastUserMessage);
+        const priority = inferPriority(lastUserMessage, category);
+        const preferredStart = inferPreferredStart(lastUserMessage);
+        const deadline = inferDeadline(lastUserMessage);
+        const payload = {
+            name: cleanedName,
+            duration,
+            priority,
+            category,
+            ...(preferredStart && { preferred_start: preferredStart }),
+            ...(deadline && { deadline }),
+        };
+
+        return `Bisa. Aku tangkap ini sebagai tugas "${cleanedName}" dengan estimasi ${duration} menit dan prioritas ${priority}. Setelah masuk, engine Chroniq akan menaruhnya di slot yang paling masuk akal.
+
+\`\`\`json
+${JSON.stringify({ action: "ADD_TASK", payload })}
+\`\`\``;
+    }
+
+    const streakLine = streak > 0
+        ? `Streak kamu sekarang ${streak} hari, jadi fokusku adalah menjaga momentum tanpa bikin kamu cepat capek.`
+        : "Kita bisa mulai dari satu blok fokus kecil dulu supaya sistemmu punya data eksekusi awal.";
+
+    return `Aku tetap bisa bantu dari mode lokal Chroniq AI. ${streakLine}
+
+Untuk sekarang, ceritakan satu hal yang paling mengganggu jadwalmu, atau langsung bilang "tambah tugas ..." / "susun ulang jadwal".${level >= 5 ? " Karena levelmu sudah lumayan tinggi, aku juga bisa bantu tuning ritme fokusmu lebih agresif." : ""}`;
 }

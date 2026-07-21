@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Brain, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
+import { fetchChroniqAiJson } from "@/lib/ai/client";
 import { usePoeStore } from "@/store/useStore";
 import { useScheduleManager } from "@/hooks/useScheduleManager";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +15,18 @@ interface ChatMessage {
     role: "user" | "model";
     content: string;
 }
+
+const clampPriority = (priority: unknown): 1 | 2 | 3 | 4 | 5 => {
+    const value = typeof priority === "number" ? priority : Number(priority);
+    const normalized = Math.round(Number.isFinite(value) ? value : 3);
+    return Math.min(5, Math.max(1, normalized)) as 1 | 2 | 3 | 4 | 5;
+};
+
+const clampDuration = (duration: unknown): number => {
+    const value = typeof duration === "number" ? duration : Number(duration);
+    const normalized = Math.round(Number.isFinite(value) ? value : 30);
+    return Math.min(480, Math.max(5, normalized));
+};
 
 export default function CoachPage() {
     const [input, setInput] = useState("");
@@ -100,25 +113,20 @@ export default function CoachPage() {
                 fixedEvents: fixedBlocks.length
             };
 
-            const response = await fetch('/api/ai/chat', {
+            const data = await fetchChroniqAiJson<{ reply?: string }>('/api/ai/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messages: [...messages, userMsg].filter(m => m.id !== "sys-welcome"),
                     context
                 })
-            });
+            }, 18_000);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Gagal ngobrol dengan AI");
-            }
-
-            const data = await response.json();
             const aiReplyText = data.reply || "";
+            if (!aiReplyText.trim()) throw new Error("Chroniq AI belum mengirim respons yang bisa dibaca.");
 
             // Check if there's an action block (Markdown JSON parse)
-            const jsonBlockRegex = /```json\n([\s\S]*?)\n```/g;
+            const jsonBlockRegex = /```json\s*([\s\S]*?)```/g;
             let match;
             let actionParsed = false;
 
@@ -127,14 +135,14 @@ export default function CoachPage() {
                     const actionData = JSON.parse(match[1]);
 
                     if (actionData.action === "ADD_TASK") {
-                        const payload = actionData.payload;
+                        const payload = actionData.payload || {};
                         addActivity({
                             id: `act-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
                             user_id: user?.id || "user",
-                            name: payload.name,
-                            target_duration: payload.duration,
-                            priority: payload.priority,
-                            category: payload.category,
+                            name: payload.name || "Tugas Baru",
+                            target_duration: clampDuration(payload.duration),
+                            priority: clampPriority(payload.priority),
+                            category: payload.category || "Ad-Hoc (Dadakan)",
                             recurrence: payload.recurrence || 'none',
                             ...(payload.preferred_start && { preferred_start: payload.preferred_start }),
                             ...(payload.deadline && { deadline: payload.deadline })
@@ -142,9 +150,10 @@ export default function CoachPage() {
                         actionParsed = true;
                     }
                     else if (actionData.action === "SET_DEADLINE") {
-                        const payload = actionData.payload;
+                        const payload = actionData.payload || {};
                         const currentActivities = usePoeStore.getState().activities;
-                        const target = currentActivities.find(a => a.name.toLowerCase().includes(payload.name.toLowerCase()));
+                        const targetName = typeof payload.name === "string" ? payload.name.toLowerCase() : "";
+                        const target = targetName ? currentActivities.find(a => a.name.toLowerCase().includes(targetName)) : null;
                         if (target && payload.deadline) {
                             updateActivity(target.id, { deadline: payload.deadline });
                             handleReoptimize();
@@ -152,9 +161,10 @@ export default function CoachPage() {
                         }
                     }
                     else if (actionData.action === "DELETE_TASK") {
-                        const payload = actionData.payload;
+                        const payload = actionData.payload || {};
                         const currentActivities = usePoeStore.getState().activities;
-                        const target = currentActivities.find(a => a.name.toLowerCase().includes(payload.name.toLowerCase()));
+                        const targetName = typeof payload.name === "string" ? payload.name.toLowerCase() : "";
+                        const target = targetName ? currentActivities.find(a => a.name.toLowerCase().includes(targetName)) : null;
                         if (target) {
                             removeActivity(target.id);
                             actionParsed = true;
@@ -169,7 +179,7 @@ export default function CoachPage() {
                 }
             }
 
-            const cleanReply = aiReplyText.replace(jsonBlockRegex, "").trim();
+            const cleanReply = aiReplyText.replace(jsonBlockRegex, "").trim() || "Siap, aku sudah jalankan instruksinya di Chroniq.";
 
             const aiMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
@@ -181,11 +191,13 @@ export default function CoachPage() {
 
         } catch (error: unknown) {
             console.error("Chat error", error);
-            setMessages(prev => [...prev, {
+            const aiMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: "model",
-                content: "Waduh, koneksi ke otak Chroniq AI lagi terputus nih. Coba sapa lagi ya nanti!"
-            }]);
+                content: error instanceof Error ? error.message : "Chroniq AI sedang sulit merespons. Coba kirim ulang sebentar lagi."
+            };
+            setMessages(prev => [...prev, aiMsg]);
+            addChatMessage(aiMsg);
         } finally {
             setIsThinking(false);
             setCooldown(5);
@@ -251,7 +263,7 @@ export default function CoachPage() {
                                 <div className="px-5 py-3.5 bg-white/80 dark:bg-[#2d2d35]/80 backdrop-blur-sm border border-white dark:border-white/5 text-[#ff8a65] dark:text-[#ffab91] rounded-2xl rounded-tl-md shadow-sm flex items-center gap-3 transition-colors">
                                     <ChroniqAiLoader
                                         size="sm"
-                                        label="AI sedang menyusun taktik"
+                                        label="Chroniq AI sedang menyusun taktik"
                                         sublabel="Membaca konteks jadwal dan ritmemu."
                                     />
                                 </div>
@@ -286,7 +298,7 @@ export default function CoachPage() {
                         </Button>
                     </form>
                     <div className="text-center mt-2.5 text-[10px] sm:text-xs text-[#a1887f] dark:text-[#a19d9b] font-medium flex justify-center items-center gap-1.5 transition-colors">
-                        <Code className="w-3.5 h-3.5 hidden sm:block text-[#ff8a65] dark:text-[#ffab91]" /> AI terhubung langsung dengan Engine Optimasi Chroniq.
+                        <Code className="w-3.5 h-3.5 hidden sm:block text-[#ff8a65] dark:text-[#ffab91]" /> Chroniq AI terhubung langsung dengan Engine Optimasi Chroniq.
                     </div>
                 </div>
 

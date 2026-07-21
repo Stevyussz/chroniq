@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { refineActivitiesOffline } from '@/lib/ai/fallback';
+import { extractJsonPayload, hasChroniqAiKey, normalizeAiActivities, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
 import { Activity } from '@/types';
 
 // Initialize the Chroniq AI provider SDK
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing or empty activities array.' }, { status: 400 });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!hasChroniqAiKey()) {
             return NextResponse.json({ refinedActivities: refineActivitiesOffline(activities as Activity[]), mode: "offline" });
         }
 
@@ -80,14 +81,25 @@ Input Mentah User:
 ${JSON.stringify(activities, null, 2)}
 `;
 
-        const result = await model.generateContent(prompt);
-        const textResponse = result.response.text();
+        const textResponse = await retryChroniqAi(async () => {
+            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI refine");
+            return readAiText(result, "Chroniq AI refine");
+        }, "Chroniq AI refine");
 
         try {
-            const parsedArray = JSON.parse(textResponse);
-            return NextResponse.json({ refinedActivities: parsedArray });
-        } catch {
-            return NextResponse.json({ error: 'AI did not return valid JSON' }, { status: 500 });
+            const parsedArray = extractJsonPayload<unknown[]>(textResponse, "array");
+            if (!Array.isArray(parsedArray) || parsedArray.length === 0) {
+                throw new Error("AI returned empty or non-array JSON");
+            }
+            const normalized = refineActivitiesOffline(normalizeAiActivities(parsedArray, fallbackActivities));
+            return NextResponse.json({ refinedActivities: normalized });
+        } catch (parseError) {
+            console.warn("Chroniq AI refine returned invalid JSON, using local refine:", parseError);
+            return NextResponse.json({
+                refinedActivities: refineActivitiesOffline(fallbackActivities),
+                mode: "offline-fallback",
+                warning: "Chroniq AI sedang memakai mode refine lokal."
+            });
         }
 
     } catch (error: unknown) {

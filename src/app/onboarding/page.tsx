@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
+import { fetchChroniqAiJson } from "@/lib/ai/client";
 import { Activity, EnergySlot, FixedBlock } from "@/types";
 import { MagicInput } from '@/components/dashboard/MagicInput';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -116,17 +117,14 @@ export default function OnboardingPage() {
             let finalActivities = [...activities];
 
             if (finalActivities.length > 0) {
-                const response = await fetch('/api/ai/refine', {
+                const data = await fetchChroniqAiJson<{ refinedActivities?: Activity[] }>('/api/ai/refine', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ activities: finalActivities })
-                });
+                }, 18_000);
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.refinedActivities && Array.isArray(data.refinedActivities)) {
-                        finalActivities = data.refinedActivities;
-                    }
+                if (data.refinedActivities && Array.isArray(data.refinedActivities)) {
+                    finalActivities = data.refinedActivities;
                 }
             }
 
@@ -372,7 +370,7 @@ export default function OnboardingPage() {
                                                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e64a19] dark:from-[#ff8a65] to-[#f57c00] dark:to-[#ffb74d]">Chroniq</span> AI Setup
                                             </CardTitle>
                                         </div>
-                                        <CardDescription className="text-sm mt-2 dark:text-[#a19d9b]">Beri tahu AI apa yang harus Anda kerjakan hari ini dalam bahasa sehari-hari. Chroniq akan meraciknya.</CardDescription>
+                                        <CardDescription className="text-sm mt-2 dark:text-[#a19d9b]">Beri tahu Chroniq AI apa yang harus Anda kerjakan hari ini dalam bahasa sehari-hari. Chroniq akan meraciknya.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         {(isAiProcessing || isAiOptimizing) && (
@@ -452,7 +450,7 @@ export default function OnboardingPage() {
                                                         <select className="flex h-10 w-full rounded-md border border-[#efebe9] dark:border-white/10 bg-white dark:bg-[#1b2620]/50 px-3 py-2 text-sm text-[#5d4037] dark:text-[#e4d8cd] transition-colors" value={newAct.category} onChange={e => setNewAct(p => ({ ...p, category: e.target.value }))}>
                                                             <option value="Fokus Tinggi (Analitis)">Fokus Tinggi (Analitis)</option>
                                                             <option value="Kreativitas (Desain/Nulis)">Kreativitas (Desain/Nulis)</option>
-                                                            <option value="Tugas Ringan (Kirim Email)">Tugas Ringan (Email/Kord)</option>
+                                                            <option value="Tugas Ringan (Email/Kord)">Tugas Ringan (Email/Kord)</option>
                                                             <option value="Fisik (Beres-beres)">Fisik (Beres-beres)</option>
                                                             <option value="Belajar/Membaca">Belajar/Membaca</option>
                                                             <option value="Ad-Hoc (Dadakan)">Ad-Hoc (Dadakan)</option>

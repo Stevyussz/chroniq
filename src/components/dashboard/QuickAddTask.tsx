@@ -85,7 +85,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
             });
         });
         setIsAiExpanded(false);
-        showSuccess(`${activities.length} tugas berhasil ditambahkan dari AI!`);
+        showSuccess(`${activities.length} tugas berhasil ditambahkan dari Chroniq AI!`);
     };
 
     if (!isAiExpanded) {
@@ -100,7 +100,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ffab91] to-[#ffccbc] dark:from-[#ff8a65] dark:to-[#ffccbc] text-white flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform shadow-sm">
                         <Brain className="w-full h-full drop-shadow-sm" />
                     </div>
-                    Tambah Tugas Baru dengan AI
+                    Tambah Tugas Baru dengan Chroniq AI
                 </Button>
             </div>
         );
@@ -179,7 +179,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                             >
                                 <option value="Fokus Tinggi (Analitis)">Fokus Tinggi (Analitis)</option>
                                 <option value="Kreativitas (Desain/Nulis)">Kreativitas (Desain/Nulis)</option>
-                                <option value="Tugas Ringan (Kirim Email)">Tugas Ringan (Email/Kord)</option>
+                                <option value="Tugas Ringan (Email/Kord)">Tugas Ringan (Email/Kord)</option>
                                 <option value="Fisik (Beres-beres)">Fisik (Beres-beres)</option>
                                 <option value="Belajar/Membaca">Belajar/Membaca</option>
                                 <option value="Ad-Hoc (Dadakan)">Ad-Hoc (Dadakan)</option>

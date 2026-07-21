@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { splitTaskOffline } from '@/lib/ai/fallback';
+import { extractJsonPayload, hasChroniqAiKey, normalizeAiSubtasks, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing task parameters.' }, { status: 400 });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!hasChroniqAiKey()) {
             return NextResponse.json({ subtasks: splitTaskOffline(taskName, Number(targetDuration)), mode: "offline" });
         }
 
@@ -81,18 +82,26 @@ PRINSIP PEMECAHAN (WAJIB):
 Kembalikan JSON array yang valid.
 `;
 
-        const result = await model.generateContent(prompt);
-        const textResponse = result.response.text();
+        const textResponse = await retryChroniqAi(async () => {
+            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI split");
+            return readAiText(result, "Chroniq AI split");
+        }, "Chroniq AI split");
 
         try {
-            const parsedArray = JSON.parse(textResponse);
-            return NextResponse.json({ subtasks: parsedArray });
-        } catch {
-            const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                return NextResponse.json({ subtasks: JSON.parse(jsonMatch[0]) });
+            const parsedArray = extractJsonPayload<unknown[]>(textResponse, "array");
+            if (!Array.isArray(parsedArray) || parsedArray.length === 0) {
+                throw new Error("AI returned empty or non-array JSON");
             }
-            return NextResponse.json({ error: 'AI did not return valid JSON' }, { status: 500 });
+            return NextResponse.json({
+                subtasks: normalizeAiSubtasks(parsedArray, fallbackTaskName, fallbackTargetDuration)
+            });
+        } catch (parseError) {
+            console.warn("Chroniq AI split returned invalid JSON, using local split:", parseError);
+            return NextResponse.json({
+                subtasks: splitTaskOffline(fallbackTaskName, fallbackTargetDuration),
+                mode: "offline-fallback",
+                warning: "Chroniq AI sedang memakai mode split lokal."
+            });
         }
 
     } catch (error: unknown) {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, BrainCircuit, Keyboard } from "lucide-react";
 import { type Activity } from "@/types";
 import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
+import { fetchChroniqAiJson } from "@/lib/ai/client";
 import TextareaAutosize from 'react-textarea-autosize';
 
 interface MagicInputProps {
@@ -41,33 +42,34 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
 
         setIsProcessing(true);
         try {
-            const response = await fetch('/api/ai/parse-nl', {
+            const data = await fetchChroniqAiJson<{ activities?: Array<{ name: string; target_duration?: number; priority?: number; category?: string; preferred_start?: string; recurrence?: Activity["recurrence"]; deadline?: string }> }>('/api/ai/parse-nl', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: text.trim() })
-            });
+            }, isBrainDump ? 22_000 : 16_000);
 
-            if (!response.ok) throw new Error("Gagal terhubung ke AI");
-
-            const data = await response.json();
             if (data.activities && Array.isArray(data.activities)) {
-                const newActivities: Activity[] = data.activities.map((a: { name: string; target_duration?: number; priority?: number; category?: string; preferred_start?: string }) => ({
+                const newActivities: Activity[] = data.activities.map((a) => ({
                     id: crypto.randomUUID(),
                     user_id: "u1",
                     name: a.name,
                     target_duration: clampDuration(a.target_duration),
                     priority: clampPriority(a.priority),
                     category: a.category || "Ad-Hoc (Dadakan)",
-                    ...(a.preferred_start && { preferred_start: a.preferred_start })
+                    recurrence: a.recurrence || "none",
+                    ...(a.preferred_start && { preferred_start: a.preferred_start }),
+                    ...(a.deadline && { deadline: a.deadline })
                 }));
 
                 onActivitiesParsed(newActivities);
                 setText("");
                 setIsBrainDump(false); // Reset mode after success
+            } else {
+                throw new Error("Chroniq AI belum menemukan tugas yang valid dari input itu.");
             }
         } catch (error) {
             console.error("AI NLP Error:", error);
-            alert("Maaf, AI sedang sibuk atau koneksi terputus. Coba lagi.");
+            alert(error instanceof Error ? error.message : "Chroniq AI sedang sibuk. Coba lagi sebentar.");
         } finally {
             setIsProcessing(false);
         }
@@ -171,7 +173,7 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
 
             <div className="mt-2.5 ml-3 flex items-center justify-between">
                 <span className="text-[11px] text-stone-400 dark:text-[#a19d9b] flex items-center gap-1.5 font-bold uppercase tracking-wider transition-colors">
-                    <Sparkles className="w-3.5 h-3.5 text-[#ff8a65] dark:text-[#ffab91]" /> Natural Language Powered
+                    <Sparkles className="w-3.5 h-3.5 text-[#ff8a65] dark:text-[#ffab91]" /> Chroniq AI Input
                 </span>
                 {isBrainDump && (
                     <span className="text-[10px] text-stone-400 dark:text-[#a19d9b] font-medium mr-2">

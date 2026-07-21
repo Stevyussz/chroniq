@@ -6,6 +6,7 @@ import { allocateTime } from "@/lib/engine/allocation";
 import { calculateFlexibleTime } from "@/lib/engine/constraint";
 import { ScheduleBlock, Activity } from "@/types";
 import { sendBrowserNotification } from "@/lib/engine/audio";
+import { fetchChroniqAiJson } from "@/lib/ai/client";
 
 const clampPriority = (priority: number): 1 | 2 | 3 | 4 | 5 => {
     const normalized = Math.round(Number.isFinite(priority) ? priority : 3);
@@ -260,7 +261,7 @@ export function useScheduleManager() {
             name: taskDetails.name.trim(),
             target_duration: clampDuration(taskDetails.duration),
             priority: clampPriority(taskDetails.priority),
-            category: taskDetails.category || "Ad-Hoc",
+            category: taskDetails.category || "Ad-Hoc (Dadakan)",
             ...(taskDetails.preferred_start && { preferred_start: taskDetails.preferred_start }),
             recurrence: taskDetails.recurrence || 'none',
             date_added: new Date().toISOString().split('T')[0],
@@ -326,18 +327,15 @@ export function useScheduleManager() {
 
         try {
             // Allow Chroniq AI to review and re-categorize or break down any messy newly added activities
-            const response = await fetch('/api/ai/refine', {
+            const data = await fetchChroniqAiJson<{ refinedActivities?: Activity[] }>('/api/ai/refine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ activities: optimizedActivities })
-            });
+            }, 18_000);
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.refinedActivities && Array.isArray(data.refinedActivities)) {
-                    optimizedActivities = data.refinedActivities;
-                    setActivities(optimizedActivities); // Update store if AI made corrections
-                }
+            if (data.refinedActivities && Array.isArray(data.refinedActivities)) {
+                optimizedActivities = data.refinedActivities;
+                setActivities(optimizedActivities); // Update store if AI made corrections
             }
         } catch (error) {
             console.warn("AI refine optimization failed, falling back to local deterministic engine only:", error);
@@ -352,18 +350,14 @@ export function useScheduleManager() {
 
         setIsAiLoading(true);
         try {
-            const response = await fetch('/api/ai/split', {
+            const data = await fetchChroniqAiJson<{ subtasks?: { name: string; duration: number }[] }>('/api/ai/split', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     taskName: pendingLargeTask.name,
                     targetDuration: pendingLargeTask.target_duration
                 })
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch from Chroniq AI');
-
-            const data = await response.json();
+            }, 18_000);
 
             if (data.subtasks && Array.isArray(data.subtasks)) {
                 // Map the creative AI tasks into our store

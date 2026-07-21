@@ -48,7 +48,7 @@ export function AiSplitModal({ isOpen, pendingTask, isLoading, onConfirm, onReje
                             />
                         </div>
                     )}
-                    <p className="text-sm mb-3 font-bold text-[#e64a19] dark:text-[#ffab91] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#ffab91] animate-pulse" /> Strategi AI yang direkomendasikan:</p>
+                    <p className="text-sm mb-3 font-bold text-[#e64a19] dark:text-[#ffab91] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#ffab91] animate-pulse" /> Strategi Chroniq AI yang direkomendasikan:</p>
                     <div className="flex flex-col gap-2">
                         <ul className="list-disc pl-5 text-sm text-[#8d6e63] dark:text-[#a19d9b] space-y-2">
                             <li>Biarkan sistem memotong tugas ini menjadi <b className="dark:text-[#d7ccc8]">{Math.ceil(pendingTask.target_duration / 60)} etape sprint</b> (maksimal 60 menit per sesi).</li>
@@ -61,7 +61,7 @@ export function AiSplitModal({ isOpen, pendingTask, isLoading, onConfirm, onReje
                             {isLoading ? (
                                 <span className="flex items-center gap-2"><ChroniqAiLoader size="sm" compact /> Meracik sub-tugas...</span>
                             ) : (
-                                <span className="flex items-center gap-1.5"><Zap className="w-4 h-4 fill-current" /> Pecah dengan AI & Sebarkan</span>
+                                <span className="flex items-center gap-1.5"><Zap className="w-4 h-4 fill-current" /> Pecah dengan Chroniq AI</span>
                             )}
                         </Button>
                         <Button onClick={onReject} variant="outline" className="border-2 border-[#ffccbc] dark:border-[#ff8a65]/50 text-[#bf360c] dark:text-[#ffab91] bg-transparent hover:bg-[#ffebee]/80 dark:hover:bg-[#ff8a65]/10 rounded-xl font-semibold h-11 transition-colors">

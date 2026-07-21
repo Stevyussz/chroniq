@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePoeStore } from "@/store/useStore";
 import { EnergySlot } from "@/types";
 import { ChroniqAiLoader } from "@/components/ui/ChroniqAiLoader";
+import { fetchChroniqAiJson } from "@/lib/ai/client";
 
 interface ReflectionResponse {
     reflectionText?: string;
@@ -54,7 +55,7 @@ export function AiReflectionCard() {
 
         setIsLoading(true);
         try {
-            const response = await fetch('/api/ai/reflection', {
+            const data = await fetchChroniqAiJson<ReflectionResponse>('/api/ai/reflection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -64,20 +65,17 @@ export function AiReflectionCard() {
                     // BUG FIX #2: Send user for personalized coaching (name in reflection text)
                     user: user ? { name: user.name } : null
                 })
-            });
+            }, 18_000);
 
-            if (response.ok) {
-                const data = await response.json() as ReflectionResponse;
-                if (data.reflectionText) {
-                    setReflection(data.reflectionText);
-                    setSuggestedSlots(data.suggestedEnergySlots || null);
-                    setAiReflection(data.reflectionText, now.toISOString(), data.suggestedEnergySlots || null);
-                } else {
-                    const fallback = "Belum ada insight kuat dari AI minggu ini, terus semangat berprogres!";
-                    setReflection(fallback);
-                    setSuggestedSlots(null);
-                    setAiReflection(fallback, now.toISOString(), null);
-                }
+            if (data.reflectionText) {
+                setReflection(data.reflectionText);
+                setSuggestedSlots(data.suggestedEnergySlots || null);
+                setAiReflection(data.reflectionText, now.toISOString(), data.suggestedEnergySlots || null);
+            } else {
+                const fallback = "Belum ada insight kuat dari Chroniq AI minggu ini, terus semangat berprogres!";
+                setReflection(fallback);
+                setSuggestedSlots(null);
+                setAiReflection(fallback, now.toISOString(), null);
             }
         } catch (error) {
             console.error("Failed to fetch reflection:", error);
@@ -171,7 +169,7 @@ export function AiReflectionCard() {
                                 <Brain className="w-4 h-4" /> Saran Tuning Jam Biologis
                             </h4>
                             <p className="text-xs text-[#334155] dark:text-[#cbd5e1]">
-                                AI merekomendasikan perubahan jam energi untuk optimisasi otomatis. 
+                                Chroniq AI merekomendasikan perubahan jam energi untuk optimisasi otomatis.
                                 Peak: {suggestedSlots.find(s => s.energy_level === 'peak')?.start_time} - {suggestedSlots.find(s => s.energy_level === 'peak')?.end_time}.
                             </p>
                         </div>
@@ -179,7 +177,7 @@ export function AiReflectionCard() {
                             onClick={handleApplySuggestion}
                             className="w-full md:w-auto text-xs font-bold px-5 h-9"
                         >
-                            <Sparkles className="w-3.5 h-3.5 mr-2" /> Terapkan Saran AI
+                            <Sparkles className="w-3.5 h-3.5 mr-2" /> Terapkan Saran Chroniq
                         </Button>
                     </div>
                 )}

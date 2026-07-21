@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { buildOfflineReflection } from '@/lib/ai/fallback';
+import { extractJsonPayload, hasChroniqAiKey, normalizeReflectionPayload, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'executionLogs, activities, and energySlots are required' }, { status: 400 });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!hasChroniqAiKey()) {
             return NextResponse.json(buildOfflineReflection(executionLogs, energySlots));
         }
 
@@ -129,11 +130,13 @@ TUGAS REFLEKSIMU:
 Kembalikan dalam format JSON sesuai schema.
 `;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await retryChroniqAi(async () => {
+            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI reflection");
+            return readAiText(result, "Chroniq AI reflection");
+        }, "Chroniq AI reflection");
 
-        const parsedData = JSON.parse(responseText);
-        return NextResponse.json(parsedData);
+        const parsedData = extractJsonPayload<unknown>(responseText, "object");
+        return NextResponse.json(normalizeReflectionPayload(parsedData, fallbackEnergySlots));
 
     } catch (error) {
         console.warn("Chroniq AI Reflection fell back to offline mode:", error);
