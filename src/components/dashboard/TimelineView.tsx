@@ -58,7 +58,7 @@ function SortableScheduleBlock({ id, children, className, activeBlockRef }: { id
             style={style}
             {...attributes}
             data-dragging={isDragging ? 'true' : 'false'}
-            className={className}
+            className={`${className} select-none`}
         >
             {/* Render children, passing listeners via a special wrapper */}
             <DragHandleContext.Provider value={listeners}>
@@ -78,21 +78,27 @@ function useDragHandle() {
 
 // GripHandle: the ONLY element that triggers drag — isolates touch listeners from buttons
 function GripHandle() {
-    const handleListeners = useDragHandle();
+    const handleListeners = (useDragHandle() || {}) as Record<string, React.EventHandler<React.SyntheticEvent>>;
+    
+    // Wrap ALL dnd-kit listeners (onPointerDown, onTouchStart, onKeyDown) to stop propagation.
+    // This is critical because TouchSensor uses onTouchStart on mobile!
+    const wrappedListeners = Object.keys(handleListeners).reduce((acc, key) => {
+        acc[key] = (e: React.SyntheticEvent) => {
+            e.stopPropagation(); // Prevent bubbling so it doesn't trigger card clicks
+            handleListeners[key](e);
+        };
+        return acc;
+    }, {} as Record<string, React.EventHandler<React.SyntheticEvent>>);
+
     return (
         <div
-            {...(handleListeners as React.HTMLAttributes<HTMLDivElement>)}
-            onPointerDown={(e) => {
-                // Prevent event bubbling to block card so buttons stay tappable
-                e.stopPropagation();
-                (handleListeners as React.PointerEventHandler<HTMLDivElement> | undefined) &&
-                (handleListeners as unknown as { onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void }).onPointerDown?.(e);
-            }}
-            className="flex items-center justify-center touch-none cursor-grab active:cursor-grabbing text-[#d7ccc8] dark:text-[#a19d9b] hover:text-[#ffab91] dark:hover:text-[#ff8a65] p-2 -ml-2 rounded-lg"
+            {...wrappedListeners}
+            className="flex items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing text-[#d7ccc8] dark:text-[#a19d9b] hover:text-[#ffab91] dark:hover:text-[#ff8a65] p-3 -ml-3 mr-1 rounded-xl"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
             title="Seret untuk mengatur ulang urutan"
             aria-label="Drag handle"
         >
-            <GripVertical className="w-5 h-5 focus:outline-none" />
+            <GripVertical className="w-6 h-6 focus:outline-none" />
         </div>
     );
 }
