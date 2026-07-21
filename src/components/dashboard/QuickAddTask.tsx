@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Zap, ChevronDown, ChevronUp, Brain, Repeat } from "lucide-react";
+import { Plus, Zap, ChevronDown, ChevronUp, Brain, Repeat, CheckCircle2 } from "lucide-react";
 import { MagicInput } from "./MagicInput";
 import { type Activity } from "@/types";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface QuickAddTaskProps {
     onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string }) => void;
@@ -24,6 +25,12 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
     const [quickTaskCategory, setQuickTaskCategory] = useState("Ad-Hoc (Dadakan)");
     const [quickTaskRecurrence, setQuickTaskRecurrence] = useState<'none' | 'daily' | 'weekly' | 'weekdays'>('none');
     const [quickTaskDeadline, setQuickTaskDeadline] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+
+    const showSuccess = (msg: string) => {
+        setSuccessMessage(msg);
+        setTimeout(() => setSuccessMessage(""), 3500);
+    };
 
     const handleQuickAdd = () => {
         if (!quickTaskName || !quickTaskDuration) return;
@@ -44,6 +51,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
         setQuickTaskCategory("Ad-Hoc (Dadakan)");
         setQuickTaskRecurrence('none');
         setQuickTaskDeadline("");
+        showSuccess("Tugas manual berhasil ditambahkan!");
     };
 
     const handleMagicInputParsed = (activities: Activity[]) => {
@@ -59,25 +67,47 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
             });
         });
         setIsAiExpanded(false);
+        showSuccess(`${activities.length} tugas berhasil ditambahkan dari AI!`);
     };
+
+    const SuccessToast = () => (
+        <AnimatePresence>
+            {successMessage && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                    className="absolute -top-14 left-0 right-0 mx-auto w-max z-50 flex items-center gap-2 bg-[#4caf50] dark:bg-[#388e3c] text-white px-4 py-2 rounded-full shadow-lg font-medium text-sm"
+                >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {successMessage}
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
 
     if (!isAiExpanded) {
         return (
-            <Button
-                onClick={() => setIsAiExpanded(true)}
-                className="w-full h-14 bg-white/40 dark:bg-[#2d2d35]/40 backdrop-blur-md border-2 border-dashed border-[#ffccbc]/80 dark:border-[#ff8a65]/40 hover:bg-white/60 dark:hover:bg-[#2d2d35]/70 hover:border-[#ffab91] dark:hover:border-[#ff8a65] text-[#8d6e63] dark:text-[#a19d9b] hover:text-[#5d4037] dark:hover:text-[#e4d8cd] font-bold rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-3"
-                variant="outline"
-            >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ffab91] to-[#ffccbc] dark:from-[#ff8a65] dark:to-[#ffccbc] text-white flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform shadow-sm">
-                    <Brain className="w-full h-full drop-shadow-sm" />
-                </div>
-                Tambah Tugas Baru dengan AI
-            </Button>
+            <div className="relative">
+                <SuccessToast />
+                <Button
+                    onClick={() => setIsAiExpanded(true)}
+                    className="w-full h-14 bg-white/40 dark:bg-[#2d2d35]/40 backdrop-blur-md border-2 border-dashed border-[#ffccbc]/80 dark:border-[#ff8a65]/40 hover:bg-white/60 dark:hover:bg-[#2d2d35]/70 hover:border-[#ffab91] dark:hover:border-[#ff8a65] text-[#8d6e63] dark:text-[#a19d9b] hover:text-[#5d4037] dark:hover:text-[#e4d8cd] font-bold rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-3"
+                    variant="outline"
+                >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ffab91] to-[#ffccbc] dark:from-[#ff8a65] dark:to-[#ffccbc] text-white flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform shadow-sm">
+                        <Brain className="w-full h-full drop-shadow-sm" />
+                    </div>
+                    Tambah Tugas Baru dengan AI
+                </Button>
+            </div>
         );
     }
 
     return (
-        <Card className="bg-white/40 dark:bg-[#1e1e24]/40 backdrop-blur-md border-2 border-[#ffab91]/40 dark:border-[#ff8a65]/30 shadow-sm relative overflow-visible rounded-3xl animate-in fade-in zoom-in-95 duration-200 transition-colors">
+        <div className="relative">
+            <SuccessToast />
+            <Card className="bg-white/40 dark:bg-[#1e1e24]/40 backdrop-blur-md border-2 border-[#ffab91]/40 dark:border-[#ff8a65]/30 shadow-sm relative overflow-visible rounded-3xl animate-in fade-in zoom-in-95 duration-200 transition-colors">
             {/* Close button mapping for Expanded View */}
             <Button
                 variant="ghost"
@@ -202,5 +232,6 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                 )}
             </CardContent>
         </Card>
+        </div>
     );
 }
