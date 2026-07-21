@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Download, Upload } from "lucide-react";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
-import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 import { QuickAddTask } from "@/components/dashboard/QuickAddTask";
@@ -34,8 +34,17 @@ export default function Dashboard() {
   const { width, height } = useWindowSize();
 
   // Initialize sensors for DnD
+  // TouchSensor: 250ms delay prevents conflict with scroll on mobile.
+  // PointerSensor: 8px tolerance so accidental micro-drags don't trigger on desktop.
+  // KeyboardSensor: accessibility support.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,        // Hold 250ms before drag starts (allows tap events to fire)
+        tolerance: 8,     // Allow 8px movement during hold without cancelling
+      },
+    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 

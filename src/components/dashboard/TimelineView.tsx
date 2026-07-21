@@ -46,6 +46,9 @@ function SortableScheduleBlock({ id, children, className, activeBlockRef }: { id
         opacity: isDragging ? 0.6 : 1,
     };
 
+    // Clone children and inject handleProps (listeners) into the grip handle via context
+    // We pass handleProps down via a data attribute on the wrapper so the GripVertical
+    // inside children can be upgraded separately.
     return (
         <div
             ref={(node) => {
@@ -54,10 +57,42 @@ function SortableScheduleBlock({ id, children, className, activeBlockRef }: { id
             }}
             style={style}
             {...attributes}
-            {...listeners}
+            data-dragging={isDragging ? 'true' : 'false'}
             className={className}
         >
-            {children}
+            {/* Render children, passing listeners via a special wrapper */}
+            <DragHandleContext.Provider value={listeners}>
+                {children}
+            </DragHandleContext.Provider>
+        </div>
+    );
+}
+
+// Context for passing drag handle listeners down to the GripVertical
+const DragHandleContext = React.createContext<Record<string, unknown> | undefined>(undefined);
+
+// Exported hook for children to get drag handle listeners
+function useDragHandle() {
+    return React.useContext(DragHandleContext);
+}
+
+// GripHandle: the ONLY element that triggers drag — isolates touch listeners from buttons
+function GripHandle() {
+    const handleListeners = useDragHandle();
+    return (
+        <div
+            {...(handleListeners as React.HTMLAttributes<HTMLDivElement>)}
+            onPointerDown={(e) => {
+                // Prevent event bubbling to block card so buttons stay tappable
+                e.stopPropagation();
+                (handleListeners as React.PointerEventHandler<HTMLDivElement> | undefined) &&
+                (handleListeners as unknown as { onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void }).onPointerDown?.(e);
+            }}
+            className="flex items-center justify-center touch-none cursor-grab active:cursor-grabbing text-[#d7ccc8] dark:text-[#a19d9b] hover:text-[#ffab91] dark:hover:text-[#ff8a65] p-2 -ml-2 rounded-lg"
+            title="Seret untuk mengatur ulang urutan"
+            aria-label="Drag handle"
+        >
+            <GripVertical className="w-5 h-5 focus:outline-none" />
         </div>
     );
 }
@@ -162,9 +197,7 @@ export function TimelineView({
                                             {/* Top Row Info */}
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                                                 <div className="flex-1 flex gap-3">
-                                                    <div className="flex items-center justify-center cursor-grab active:cursor-grabbing text-[#d7ccc8] dark:text-[#a19d9b] hover:text-[#ffab91] dark:hover:text-[#ff8a65]">
-                                                        <GripVertical className="w-5 h-5 focus:outline-none" />
-                                                    </div>
+                                                    <GripHandle />
                                                     <div>
                                                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                                                             <span className="font-mono text-xs sm:text-sm font-bold text-[#8d6e63] dark:text-[#d7ccc8] bg-white/40 dark:bg-[#2d2d35]/50 backdrop-blur-sm px-2 py-0.5 rounded-md border border-white/50 dark:border-white/10">{block.planned_start} - {block.planned_end}</span>
