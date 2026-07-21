@@ -31,6 +31,13 @@ export async function retryChroniqAi<T>(operation: () => Promise<T>, label: stri
             return await operation();
         } catch (error) {
             lastError = error;
+            const status = typeof error === "object" && error && "status" in error
+                ? Number((error as { status?: unknown }).status)
+                : undefined;
+            const isNonRetryable = status ? [400, 401, 403, 404, 429].includes(status) : false;
+
+            if (isNonRetryable) break;
+
             if (attempt < retries) {
                 console.warn(`${label} attempt ${attempt + 1} failed, retrying once:`, error);
             }
