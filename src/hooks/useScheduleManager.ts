@@ -129,9 +129,34 @@ export function useScheduleManager() {
                 }
 
                 const currentLogs = usePoeStore.getState().executionLogs;
+                const todayDow = new Date().getDay(); // 0=Sun, 1=Mon...6=Sat
 
-                // Only schedule activities that are NOT completed
-                const activeActivities = activities.filter(a => !a.is_completed);
+                // RECURRING TASKS ENGINE
+                // Reset is_completed for recurring tasks that are due today.
+                // This is the core mechanic that makes recurring tasks reappear each day.
+                const storeActivities = usePoeStore.getState().activities;
+                let needsRecurringReset = false;
+                const updatedActivities = storeActivities.map(act => {
+                    if (!act.recurrence || act.recurrence === 'none') return act;
+
+                    let isDueToday = false;
+                    if (act.recurrence === 'daily') isDueToday = true;
+                    if (act.recurrence === 'weekdays') isDueToday = todayDow >= 1 && todayDow <= 5;
+                    if (act.recurrence === 'weekly') isDueToday = true; // Same day of week as when added (simplified)
+
+                    if (isDueToday && act.is_completed) {
+                        needsRecurringReset = true;
+                        return { ...act, is_completed: false };
+                    }
+                    return act;
+                });
+
+                if (needsRecurringReset) {
+                    usePoeStore.getState().setActivities(updatedActivities);
+                }
+
+                // Only schedule activities that are NOT completed (after recurring reset)
+                const activeActivities = (needsRecurringReset ? updatedActivities : storeActivities).filter(a => !a.is_completed);
                 const allocated = allocateTime(activeActivities, availableFlexMinutes);
 
                 // Pass logs to the new adaptive engine
@@ -185,15 +210,17 @@ export function useScheduleManager() {
         }
     };
 
-    const handleQuickAddExternal = (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category?: string; preferred_start?: string }) => {
+    const handleQuickAddExternal = (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category?: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays' }) => {
         const newAct = {
             id: `act-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             user_id: user?.id || "user",
             name: taskDetails.name.trim(),
             target_duration: clampDuration(taskDetails.duration),
             priority: clampPriority(taskDetails.priority),
-            category: taskDetails.category || "Ad-Hoc", // Use provided or default
-            ...(taskDetails.preferred_start && { preferred_start: taskDetails.preferred_start }) // Inject if exists
+            category: taskDetails.category || "Ad-Hoc",
+            ...(taskDetails.preferred_start && { preferred_start: taskDetails.preferred_start }),
+            recurrence: taskDetails.recurrence || 'none',
+            date_added: new Date().toISOString().split('T')[0],
         };
 
         if (!newAct.name) return;

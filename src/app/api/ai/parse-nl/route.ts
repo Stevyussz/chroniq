@@ -77,9 +77,13 @@ export async function POST(req: Request) {
                             preferred_start: {
                                 type: SchemaType.STRING,
                                 description: `OPSIONAL. Format HH:mm 24 jam. Isi HANYA jika user eksplisit menyebut waktu (mis: 'jam 2 siang'='14:00', 'malam'='19:00', 'pagi'='08:00'). User bangun jam ${wakeTime}, jadi 'pagi' relatif ke waktu bangunnya. Kosongkan jika tidak ada petunjuk waktu.`
+                            },
+                            recurrence: {
+                                type: SchemaType.STRING,
+                                description: "Pola pengulangan tugas. Deteksi dari kata kunci: 'setiap hari/tiap hari/daily/rutin setiap hari' = 'daily', 'hari kerja/senin-jumat/weekday' = 'weekdays', 'tiap minggu/setiap minggu/weekly' = 'weekly', tidak ada kata kunci = 'none'."
                             }
                         },
-                        required: ["name", "target_duration", "priority", "category"]
+                        required: ["name", "target_duration", "priority", "category", "recurrence"]
                     }
                 }
             }
@@ -108,6 +112,13 @@ ATURAN PARSING (WAJIB DIIKUTI):
 5. **WAKTU RELATIF ke JAM SEKARANG**: Jika user bilang "sekarang mau X", set preferred_start ke jam saat ini (${currentHour}:00).
 
 6. **PREFERRED_START MULTI-TASK**: Jika user bilang "mulai jam X terus Y terus Z", set preferred_start = X untuk SEMUA task tersebut. Engine akan mengatur urutan secara otomatis.
+
+7. **RECURRENCE DETECTION**: Deteksi pola pengulangan dari kata kunci:
+   - "tiap hari/setiap hari/rutin/daily" → recurrence: "daily"
+   - "hari kerja/senin-jumat/weekday" → recurrence: "weekdays"
+   - "tiap minggu/setiap minggu/weekly" → recurrence: "weekly"
+   - Tidak ada kata kunci → recurrence: "none"
+   Contoh: "Olahraga tiap hari 30 menit" → recurrence: "daily"; "Review catatan setiap hari kerja" → recurrence: "weekdays".
 
 Input user:
 "${text}"

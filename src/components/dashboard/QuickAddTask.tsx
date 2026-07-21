@@ -4,13 +4,13 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Zap, ChevronDown, ChevronUp, Brain } from "lucide-react";
+import { Plus, Zap, ChevronDown, ChevronUp, Brain, Repeat } from "lucide-react";
 import { MagicInput } from "./MagicInput";
 import { type Activity } from "@/types";
 import Image from "next/image";
 
 interface QuickAddTaskProps {
-    onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string }) => void;
+    onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays' }) => void;
 }
 
 export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
@@ -22,6 +22,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
     const [quickTaskDuration, setQuickTaskDuration] = useState("");
     const [quickTaskPriority, setQuickTaskPriority] = useState(3);
     const [quickTaskCategory, setQuickTaskCategory] = useState("Ad-Hoc (Dadakan)");
+    const [quickTaskRecurrence, setQuickTaskRecurrence] = useState<'none' | 'daily' | 'weekly' | 'weekdays'>('none');
 
     const handleQuickAdd = () => {
         if (!quickTaskName || !quickTaskDuration) return;
@@ -30,7 +31,8 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
             name: quickTaskName,
             duration: parseInt(quickTaskDuration),
             priority: quickTaskPriority as 1 | 2 | 3 | 4 | 5,
-            category: quickTaskCategory
+            category: quickTaskCategory,
+            recurrence: quickTaskRecurrence
         });
 
         // Reset Form
@@ -38,6 +40,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
         setQuickTaskDuration("");
         setQuickTaskPriority(3);
         setQuickTaskCategory("Ad-Hoc (Dadakan)");
+        setQuickTaskRecurrence('none');
     };
 
     const handleMagicInputParsed = (activities: Activity[]) => {
@@ -47,7 +50,8 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                 duration: act.target_duration,
                 priority: act.priority as 1 | 2 | 3 | 4 | 5,
                 category: act.category,
-                preferred_start: act.preferred_start
+                preferred_start: act.preferred_start,
+                recurrence: act.recurrence || 'none'
             });
         });
         setIsAiExpanded(false); // Auto Collapse after adding via AI
@@ -156,12 +160,27 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                                 className="bg-white/60 border-white/50 backdrop-blur-sm"
                             />
                         </div>
+                        <div className="w-full md:w-44">
+                            <label className="text-sm font-medium mb-1 block text-[#8d6e63]">Pengulangan</label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-white/50 dark:border-white/10 bg-white/60 dark:bg-[#1e1e24]/60 backdrop-blur-sm px-3 py-2 text-sm text-[#5d4037] dark:text-[#e4d8cd] transition-colors"
+                                value={quickTaskRecurrence}
+                                onChange={e => setQuickTaskRecurrence(e.target.value as 'none' | 'daily' | 'weekly' | 'weekdays')}
+                            >
+                                <option value="none">Tidak Berulang</option>
+                                <option value="daily">🔁 Setiap Hari</option>
+                                <option value="weekdays">📅 Hari Kerja (Sen-Jum)</option>
+                                <option value="weekly">🗓️ Tiap Minggu</option>
+                            </select>
+                        </div>
                         <Button
                             onClick={handleQuickAdd}
                             disabled={!quickTaskName || !quickTaskDuration}
                             className="w-full md:w-auto bg-[#ffab91] hover:bg-[#ff8a65] text-white font-bold h-10"
                         >
-                            <Plus className="w-4 h-4 mr-1" /> Add
+                            {quickTaskRecurrence !== 'none' && <Repeat className="w-4 h-4 mr-1.5" />}
+                            {quickTaskRecurrence === 'none' ? <Plus className="w-4 h-4 mr-1" /> : null}
+                            Add {quickTaskRecurrence !== 'none' ? '(Recurring)' : ''}
                         </Button>
                     </div>
                 )}

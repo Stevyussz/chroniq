@@ -33,6 +33,7 @@ export interface Activity {
   preferred_start?: string; // HH:mm format if user requests a specific start time
   is_completed?: boolean;
   date_added?: string; // YYYY-MM-DD
+  recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; // Recurring task pattern
 }
 
 export interface ScheduleBlock {

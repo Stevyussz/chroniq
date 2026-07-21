@@ -177,6 +177,11 @@ export function TimelineView({
                                                                     ⚡ Quick Win
                                                                 </span>
                                                             )}
+                                                            {block.type === 'activity' && act && act.recurrence && act.recurrence !== 'none' && (
+                                                                <span className="text-[10px] font-bold flex items-center gap-1 bg-[#e3f2fd] dark:bg-[#1565c0]/20 px-2 py-1 rounded-full text-[#1565c0] dark:text-[#90caf9] border border-[#90caf9]/40 dark:border-[#1565c0]/40" title={`Tugas berulang: ${act.recurrence === 'daily' ? 'Setiap Hari' : act.recurrence === 'weekdays' ? 'Hari Kerja' : 'Tiap Minggu'}`}>
+                                                                    🔁 {act.recurrence === 'daily' ? 'Harian' : act.recurrence === 'weekdays' ? 'Hari Kerja' : 'Mingguan'}
+                                                                </span>
+                                                            )}
                                                             {checklistCount > 0 && (
                                                                 <span className="text-[10px] font-bold flex items-center gap-1 bg-white/50 dark:bg-[#2d2d35]/50 px-2 py-1 rounded-full text-[#8d6e63] dark:text-[#d7ccc8] border border-white/60 dark:border-white/10">
                                                                     <CheckSquare className="w-3 h-3 text-[#ff8a65]" />
