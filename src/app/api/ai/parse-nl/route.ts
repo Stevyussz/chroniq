@@ -26,6 +26,8 @@ export async function POST(req: Request) {
             priority: item.priority || 3,
             category: item.category || "Ad-Hoc (Dadakan)",
             ...(item.preferred_start && { preferred_start: item.preferred_start }),
+            recurrence: (item.recurrence as 'none' | 'daily' | 'weekly' | 'weekdays') || 'none',
+            ...(item.deadline && { deadline: item.deadline }),
         }));
         return refineActivitiesOffline(activityItems);
     };
@@ -81,6 +83,10 @@ export async function POST(req: Request) {
                             recurrence: {
                                 type: SchemaType.STRING,
                                 description: "Pola pengulangan tugas. Deteksi dari kata kunci: 'setiap hari/tiap hari/daily/rutin setiap hari' = 'daily', 'hari kerja/senin-jumat/weekday' = 'weekdays', 'tiap minggu/setiap minggu/weekly' = 'weekly', tidak ada kata kunci = 'none'."
+                            },
+                            deadline: {
+                                type: SchemaType.STRING,
+                                description: "OPSIONAL. Format YYYY-MM-DD. Isi HANYA jika user sebut tenggat/deadline/dikumpul/kumpul. Kosongkan jika tidak ada."
                             }
                         },
                         required: ["name", "target_duration", "priority", "category", "recurrence"]
@@ -89,12 +95,14 @@ export async function POST(req: Request) {
             }
         });
 
+        const todayISO = new Date().toISOString().split('T')[0];
         const prompt = `
 Kamu adalah Chroniq AI Parser — mesin NLP ultra-presisi yang mengekstrak tugas dari teks bebas Bahasa Indonesia.
 
 KONTEKS PENTING:
 - Sekarang adalah waktu ${timeOfDay} (jam ${currentHour}:00)
 - User bangun jam ${wakeTime}, jadi semua referensi "pagi/siang/malam" relatif ke jam bangunnya
+- Tanggal hari ini: ${todayISO}
 
 ATURAN PARSING (WAJIB DIIKUTI):
 
@@ -118,7 +126,13 @@ ATURAN PARSING (WAJIB DIIKUTI):
    - "hari kerja/senin-jumat/weekday" → recurrence: "weekdays"
    - "tiap minggu/setiap minggu/weekly" → recurrence: "weekly"
    - Tidak ada kata kunci → recurrence: "none"
-   Contoh: "Olahraga tiap hari 30 menit" → recurrence: "daily"; "Review catatan setiap hari kerja" → recurrence: "weekdays".
+
+8. **DEADLINE DETECTION**: Hitung dari tanggal hari ini (${todayISO}):
+   - "besok" → esok hari YYYY-MM-DD
+   - "lusa" → dua hari dari sekarang
+   - nama hari ("jumat", "senin", dst) → hari tersebut di minggu ini atau depan jika sudah lewat
+   - "deadline [tgl]/dikumpul [tgl]/kumpul [tgl]" → parse tanggalnya
+   - Tidak ada → JANGAN isi field deadline
 
 Input user:
 "${text}"

@@ -55,15 +55,18 @@ ATURAN WAJIB:
 
 COMMAND FORMAT (tambahkan di AKHIR pesan jika ada aksi):
 \`\`\`json
-{ "action": "ADD_TASK", "payload": { "name": "...", "duration": 60, "priority": 4, "category": "Fokus Tinggi (Analitis)", "preferred_start": "20:00" } }
+{ "action": "ADD_TASK", "payload": { "name": "...", "duration": 60, "priority": 4, "category": "Fokus Tinggi (Analitis)", "preferred_start": "20:00", "deadline": "YYYY-MM-DD" } }
 \`\`\`
 \`\`\`json
 { "action": "DELETE_TASK", "payload": { "name": "..." } }
 \`\`\`
 \`\`\`json
+{ "action": "SET_DEADLINE", "payload": { "name": "...", "deadline": "YYYY-MM-DD" } }
+\`\`\`
+\`\`\`json
 { "action": "REOPTIMIZE", "payload": {} }
 \`\`\`
-Kategori valid: "Fokus Tinggi (Analitis)" | "Kreativitas (Desain/Nulis)" | "Tugas Ringan (Email/Kord)" | "Fisik (Beres-beres)" | "Belajar/Membaca" | "Ad-Hoc (Dadakan)". Priority 1-5. preferred_start format HH:mm — kosongkan jika tidak disebutkan user.
+Kategori valid: "Fokus Tinggi (Analitis)" | "Kreativitas (Desain/Nulis)" | "Tugas Ringan (Email/Kord)" | "Fisik (Beres-beres)" | "Belajar/Membaca" | "Ad-Hoc (Dadakan)". Priority 1-5. preferred_start format HH:mm. deadline format YYYY-MM-DD (hari ini: ${new Date().toISOString().split('T')[0]}). Jika user bilang "besok" hitung tanggalnya sendiri. Kosongkan field yang tidak relevan.
 
 FILOSOFI: "Sistem yang baik melayani ritme biologis manusia, bukan sebaliknya."`;
 

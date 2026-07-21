@@ -182,6 +182,24 @@ export function TimelineView({
                                                                     🔁 {act.recurrence === 'daily' ? 'Harian' : act.recurrence === 'weekdays' ? 'Hari Kerja' : 'Mingguan'}
                                                                 </span>
                                                             )}
+                                                            {block.type === 'activity' && act?.deadline && (() => {
+                                                                const today = new Date(); today.setHours(0,0,0,0);
+                                                                const dl = new Date(act.deadline); dl.setHours(0,0,0,0);
+                                                                const days = Math.ceil((dl.getTime() - today.getTime()) / 86400000);
+                                                                const label = days < 0 ? `LEWAT ${Math.abs(days)}h` : days === 0 ? 'HARI INI!' : days === 1 ? 'Besok' : `${days} hari lagi`;
+                                                                const colors = days < 0
+                                                                    ? 'bg-[#d32f2f]/20 text-[#d32f2f] dark:text-[#ff8a80] border-[#d32f2f]/30 animate-pulse'
+                                                                    : days === 0
+                                                                    ? 'bg-[#ff5722]/20 text-[#bf360c] dark:text-[#ff8a65] border-[#ff5722]/40 animate-pulse'
+                                                                    : days <= 2
+                                                                    ? 'bg-[#fff3e0] dark:bg-[#f57c00]/20 text-[#e65100] dark:text-[#ffd54f] border-[#ffe082]/60'
+                                                                    : 'bg-[#e8f5e9] dark:bg-[#388e3c]/20 text-[#1b5e20] dark:text-[#a5d6a7] border-[#a5d6a7]/40';
+                                                                return (
+                                                                    <span className={`text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded-full border ${colors}`} title={`Deadline: ${act.deadline}`}>
+                                                                        📅 {label}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                             {checklistCount > 0 && (
                                                                 <span className="text-[10px] font-bold flex items-center gap-1 bg-white/50 dark:bg-[#2d2d35]/50 px-2 py-1 rounded-full text-[#8d6e63] dark:text-[#d7ccc8] border border-white/60 dark:border-white/10">
                                                                     <CheckSquare className="w-3 h-3 text-[#ff8a65]" />

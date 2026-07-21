@@ -23,7 +23,7 @@ export default function CoachPage() {
     const {
         level, exp, activities, currentSchedule, addActivity, removeActivity,
         energySlots, fixedBlocks, user, chatHistory, addChatMessage,
-        currentStreak, longestStreak
+        currentStreak, longestStreak, updateActivity
     } = usePoeStore();
     const { handleReoptimize } = useScheduleManager();
     const router = useRouter();
@@ -135,9 +135,21 @@ export default function CoachPage() {
                             target_duration: payload.duration,
                             priority: payload.priority,
                             category: payload.category,
-                            ...(payload.preferred_start && { preferred_start: payload.preferred_start })
+                            recurrence: payload.recurrence || 'none',
+                            ...(payload.preferred_start && { preferred_start: payload.preferred_start }),
+                            ...(payload.deadline && { deadline: payload.deadline })
                         });
                         actionParsed = true;
+                    }
+                    else if (actionData.action === "SET_DEADLINE") {
+                        const payload = actionData.payload;
+                        const currentActivities = usePoeStore.getState().activities;
+                        const target = currentActivities.find(a => a.name.toLowerCase().includes(payload.name.toLowerCase()));
+                        if (target && payload.deadline) {
+                            updateActivity(target.id, { deadline: payload.deadline });
+                            handleReoptimize();
+                            actionParsed = true;
+                        }
                     }
                     else if (actionData.action === "DELETE_TASK") {
                         const payload = actionData.payload;

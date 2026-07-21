@@ -34,6 +34,7 @@ export interface Activity {
   is_completed?: boolean;
   date_added?: string; // YYYY-MM-DD
   recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; // Recurring task pattern
+  deadline?: string; // YYYY-MM-DD — hard deadline for urgency boosting
 }
 
 export interface ScheduleBlock {

@@ -132,6 +132,23 @@ export function generateSchedule(
 
     freeGaps.sort((a, b) => a.start - b.start);
 
+    // DEADLINE URGENCY ENGINE
+    // Tasks with approaching deadlines get their effective priority boosted.
+    // Based on: Urgency-Importance Matrix (Covey) — deadline tasks are always "urgent".
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    allocatedActivities.forEach(act => {
+        const rawAct = rawActivities.find(ra => ra.id === act.id);
+        if (!rawAct?.deadline) return;
+        const dl = new Date(rawAct.deadline);
+        dl.setHours(0, 0, 0, 0);
+        const daysUntilDeadline = Math.ceil((dl.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        // Today/overdue → force priority 5; Tomorrow → clamp to min 4; ≤3 days → clamp to min 3
+        if (daysUntilDeadline <= 0) act.priority = 5;
+        else if (daysUntilDeadline === 1) act.priority = Math.max(4, act.priority) as 1|2|3|4|5;
+        else if (daysUntilDeadline <= 3) act.priority = Math.max(3, act.priority) as 1|2|3|4|5;
+    });
+
     // PRIORITIZATION ALGORITHM (Phase 27 Upgrade - Chronological First)
     // 1. Tasks with a `preferred_start` MUST be placed first, sorted chronologically. If they share the same time, sort by priority.
     // 2. Flexible tasks follow: Sorted by Priority -> Category -> Longest Duration (LPT Bin Packing).

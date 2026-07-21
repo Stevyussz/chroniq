@@ -10,7 +10,7 @@ import { type Activity } from "@/types";
 import Image from "next/image";
 
 interface QuickAddTaskProps {
-    onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays' }) => void;
+    onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string }) => void;
 }
 
 export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
@@ -23,6 +23,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
     const [quickTaskPriority, setQuickTaskPriority] = useState(3);
     const [quickTaskCategory, setQuickTaskCategory] = useState("Ad-Hoc (Dadakan)");
     const [quickTaskRecurrence, setQuickTaskRecurrence] = useState<'none' | 'daily' | 'weekly' | 'weekdays'>('none');
+    const [quickTaskDeadline, setQuickTaskDeadline] = useState("");
 
     const handleQuickAdd = () => {
         if (!quickTaskName || !quickTaskDuration) return;
@@ -32,7 +33,8 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
             duration: parseInt(quickTaskDuration),
             priority: quickTaskPriority as 1 | 2 | 3 | 4 | 5,
             category: quickTaskCategory,
-            recurrence: quickTaskRecurrence
+            recurrence: quickTaskRecurrence,
+            ...(quickTaskDeadline && { deadline: quickTaskDeadline })
         });
 
         // Reset Form
@@ -41,6 +43,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
         setQuickTaskPriority(3);
         setQuickTaskCategory("Ad-Hoc (Dadakan)");
         setQuickTaskRecurrence('none');
+        setQuickTaskDeadline("");
     };
 
     const handleMagicInputParsed = (activities: Activity[]) => {
@@ -51,10 +54,11 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                 priority: act.priority as 1 | 2 | 3 | 4 | 5,
                 category: act.category,
                 preferred_start: act.preferred_start,
-                recurrence: act.recurrence || 'none'
+                recurrence: act.recurrence || 'none',
+                ...(act.deadline && { deadline: act.deadline })
             });
         });
-        setIsAiExpanded(false); // Auto Collapse after adding via AI
+        setIsAiExpanded(false);
     };
 
     if (!isAiExpanded) {
@@ -172,6 +176,18 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                                 <option value="weekdays">📅 Hari Kerja (Sen-Jum)</option>
                                 <option value="weekly">🗓️ Tiap Minggu</option>
                             </select>
+                        </div>
+                        <div className="w-full md:w-44">
+                            <label className="text-sm font-medium mb-1 flex items-center gap-1.5 text-[#8d6e63]">
+                                📅 Deadline <span className="text-[10px] text-[#a1887f] font-normal">(opsional)</span>
+                            </label>
+                            <Input
+                                type="date"
+                                value={quickTaskDeadline}
+                                min={new Date().toISOString().split('T')[0]}
+                                onChange={e => setQuickTaskDeadline(e.target.value)}
+                                className="bg-white/60 border-white/50 backdrop-blur-sm text-[#5d4037] dark:text-[#e4d8cd]"
+                            />
                         </div>
                         <Button
                             onClick={handleQuickAdd}

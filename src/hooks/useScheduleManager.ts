@@ -210,7 +210,7 @@ export function useScheduleManager() {
         }
     };
 
-    const handleQuickAddExternal = (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category?: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays' }) => {
+    const handleQuickAddExternal = (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category?: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string }) => {
         const newAct = {
             id: `act-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             user_id: user?.id || "user",
@@ -221,6 +221,7 @@ export function useScheduleManager() {
             ...(taskDetails.preferred_start && { preferred_start: taskDetails.preferred_start }),
             recurrence: taskDetails.recurrence || 'none',
             date_added: new Date().toISOString().split('T')[0],
+            ...(taskDetails.deadline && { deadline: taskDetails.deadline }),
         };
 
         if (!newAct.name) return;
