@@ -206,7 +206,50 @@ export function useScheduleManager() {
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (active.id !== over?.id && over) {
+            // 1. Shift visually first for instant feedback
             shiftSchedule(active.id as string, over.id as string);
+
+            // 2. AI Connection: Re-calculate pinning constraints and re-optimize
+            const state = usePoeStore.getState();
+            const currentActivities = state.activities;
+            const updatedSchedule = state.currentSchedule; // This has the new array order (times not adjusted yet)
+            
+            const newIndex = updatedSchedule.findIndex(s => s.id === active.id);
+            if (newIndex !== -1) {
+                const movedBlock = updatedSchedule[newIndex];
+                
+                // Only apply AI smarts if it's an activity block
+                if (movedBlock.type === 'activity' && movedBlock.activity_id) {
+                    let newStartTime = "";
+                    
+                    // Look at the block immediately BEFORE it to get the start time
+                    if (newIndex > 0) {
+                        newStartTime = updatedSchedule[newIndex - 1].planned_end;
+                    } else if (updatedSchedule.length > 1) {
+                        // If moved to very top, it steals the start time of the block it pushed down
+                        newStartTime = updatedSchedule[1].planned_start;
+                    }
+
+                    if (newStartTime) {
+                         const targetAct = currentActivities.find(a => a.id === movedBlock.activity_id);
+                         if (targetAct) {
+                             // AI Pinning: Force this task to start at the new time and boost priority
+                             const updatedAct = { ...targetAct, preferred_start: newStartTime, priority: Math.max(targetAct.priority, 4) as 1 | 2 | 3 | 4 | 5 };
+                             const newActivities = currentActivities.map(a => a.id === targetAct.id ? updatedAct : a);
+                             
+                             // Update store
+                             state.setActivities(newActivities);
+                             
+                             // Trigger full AI re-optimization so it dynamically flows everything else!
+                             setIsReoptimizing(true);
+                             setTimeout(() => {
+                                 buildSchedule(newActivities);
+                                 setIsReoptimizing(false);
+                             }, 400); // slight delay so the visual drop animation finishes smoothly
+                         }
+                    }
+                }
+            }
         }
     };
 
