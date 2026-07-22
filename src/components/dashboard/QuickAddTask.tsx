@@ -11,7 +11,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface QuickAddTaskProps {
-    onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string }) => void;
+    onAddAndOptimize: (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; scheduled_date?: string; deadline?: string }) => void;
 }
 
 function SuccessToast({ message }: { message: string }) {
@@ -81,6 +81,7 @@ export function QuickAddTask({ onAddAndOptimize }: QuickAddTaskProps) {
                 category: act.category,
                 preferred_start: act.preferred_start,
                 recurrence: act.recurrence || 'none',
+                ...(act.scheduled_date && { scheduled_date: act.scheduled_date }),
                 ...(act.deadline && { deadline: act.deadline })
             });
         });

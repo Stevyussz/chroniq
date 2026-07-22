@@ -242,6 +242,42 @@ export function buildOfflineCoachReply(messages: { role: string; content: string
     const streak = Number(context?.currentStreak || 0);
     const upcomingTasks = Number(context?.upcomingTasksCount || 0);
 
+    if (/(plan|rencana|planning|belajar|ujian|minggu|bulan|hari ke depan|kedepan)/.test(lower) && /(ujian|belajar|mapel|mata pelajaran|materi)/.test(lower)) {
+        const knownSubjects = ["IPA", "IPS", "Biologi", "Kimia", "Matematika Lanjut", "Matematika", "Fisika", "Bahasa Indonesia", "Bahasa Inggris", "Sejarah", "Ekonomi", "Geografi"];
+        const subjects = knownSubjects.filter((subject) => lower.includes(subject.toLowerCase()));
+        const selectedSubjects = subjects.length > 0 ? subjects : ["Materi Ujian"];
+        const durationDays = /bulan|1\s*bulan|30\s*hari/.test(lower) ? 30 : /minggu|7\s*hari/.test(lower) ? 7 : 14;
+        const today = new Date();
+        const tasks = Array.from({ length: Math.min(durationDays, 30) }, (_, index) => {
+            const date = new Date(today);
+            date.setDate(today.getDate() + index);
+            const dateISO = date.toISOString().split("T")[0];
+            const subject = selectedSubjects[index % selectedSubjects.length];
+            const cycle = index % 6;
+            const focus = cycle === 0 ? "Pemetaan materi"
+                : cycle === 1 ? "Active recall"
+                : cycle === 2 ? "Latihan soal"
+                : cycle === 3 ? "Review kesalahan"
+                : cycle === 4 ? "Ringkasan konsep"
+                : "Simulasi mini";
+
+            return {
+                name: `${focus} ${subject}`,
+                duration: cycle === 5 ? 60 : 45,
+                priority: cycle >= 2 ? 5 : 4,
+                category: "Belajar/Membaca",
+                scheduled_date: dateISO,
+                deadline: new Date(today.getTime() + durationDays * 86400000).toISOString().split("T")[0],
+            };
+        });
+
+        return `Bisa. Aku buatkan plan belajar ${durationDays} hari dengan pola spaced repetition: pahami konsep, active recall, latihan soal, review kesalahan, lalu simulasi mini. Tugas masa depan akan muncul otomatis sesuai tanggalnya, jadi tidak numpuk di timeline hari ini.
+
+\`\`\`json
+${JSON.stringify({ action: "ADD_TASKS", payload: { tasks } })}
+\`\`\``;
+    }
+
     if (/(optimasi|optimize|re-?optimize|atur ulang|susun ulang|jadwal ulang)/.test(lower)) {
         return `Siap, aku susun ulang jadwalmu dengan ritme yang lebih realistis. ${upcomingTasks > 0 ? `Ada ${upcomingTasks} blok aktif yang akan aku rapikan.` : "Kalau belum ada tugas aktif, tambahkan satu dulu ya."}
 

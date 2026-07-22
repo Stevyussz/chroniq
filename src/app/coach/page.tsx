@@ -145,9 +145,47 @@ export default function CoachPage() {
                             category: payload.category || "Ad-Hoc (Dadakan)",
                             recurrence: payload.recurrence || 'none',
                             ...(payload.preferred_start && { preferred_start: payload.preferred_start }),
+                            ...(payload.scheduled_date && { scheduled_date: payload.scheduled_date }),
                             ...(payload.deadline && { deadline: payload.deadline })
                         });
+                        handleReoptimize();
                         actionParsed = true;
+                    }
+                    else if (actionData.action === "ADD_TASKS") {
+                        const tasks = Array.isArray(actionData.payload?.tasks) ? actionData.payload.tasks : [];
+                        const validTasks = tasks
+                            .filter((task: { name?: unknown }) => typeof task.name === "string" && task.name.trim())
+                            .slice(0, 60);
+
+                        validTasks.forEach((task: {
+                            name: string;
+                            duration?: unknown;
+                            priority?: unknown;
+                            category?: string;
+                            recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays';
+                            preferred_start?: string;
+                            scheduled_date?: string;
+                            deadline?: string;
+                        }, index: number) => {
+                            addActivity({
+                                id: `act-${Date.now()}-${index}-${Math.floor(Math.random() * 10000)}`,
+                                user_id: user?.id || "user",
+                                name: task.name,
+                                target_duration: clampDuration(task.duration),
+                                priority: clampPriority(task.priority),
+                                category: task.category || "Belajar/Membaca",
+                                recurrence: task.recurrence || 'none',
+                                date_added: new Date().toISOString().split('T')[0],
+                                ...(task.preferred_start && { preferred_start: task.preferred_start }),
+                                ...(task.scheduled_date && { scheduled_date: task.scheduled_date }),
+                                ...(task.deadline && { deadline: task.deadline })
+                            });
+                        });
+
+                        if (validTasks.length > 0) {
+                            handleReoptimize();
+                            actionParsed = true;
+                        }
                     }
                     else if (actionData.action === "SET_DEADLINE") {
                         const payload = actionData.payload || {};

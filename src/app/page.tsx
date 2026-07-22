@@ -22,6 +22,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { TimelineView } from "@/components/dashboard/TimelineView";
 import { GoogleCalendarSync } from "@/components/dashboard/GoogleCalendarSync";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
+import { LongRangePlanPanel } from "@/components/dashboard/LongRangePlanPanel";
 
 // Custom Hooks for Modular Logic
 import { useExecutionTracker } from "@/hooks/useExecutionTracker";
@@ -189,6 +190,8 @@ export default function Dashboard() {
         <div className="pt-4">
           <QuickAddTask onAddAndOptimize={handleQuickAddExternal} />
         </div>
+
+        <LongRangePlanPanel activities={activities} onDeleteActivity={handleDeleteActivity} />
 
         {/* Dynamic Timeline Component */}
         <TimelineView

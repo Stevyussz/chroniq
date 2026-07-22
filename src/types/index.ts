@@ -33,6 +33,7 @@ export interface Activity {
   preferred_start?: string; // HH:mm format if user requests a specific start time
   is_completed?: boolean;
   date_added?: string; // YYYY-MM-DD
+  scheduled_date?: string; // YYYY-MM-DD — planned execution date for multi-day study plans
   recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; // Recurring task pattern
   deadline?: string; // YYYY-MM-DD — hard deadline for urgency boosting
 }

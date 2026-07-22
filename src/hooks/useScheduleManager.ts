@@ -4,6 +4,7 @@ import { usePoeStore } from "@/store/useStore";
 import { generateSchedule } from "@/lib/engine/optimizer";
 import { allocateTime } from "@/lib/engine/allocation";
 import { calculateFlexibleTime } from "@/lib/engine/constraint";
+import { isActivityDueOnDate } from "@/lib/engine/dateRules";
 import { ScheduleBlock, Activity } from "@/types";
 import { sendBrowserNotification } from "@/lib/engine/audio";
 import { fetchChroniqAiJson } from "@/lib/ai/client";
@@ -44,7 +45,7 @@ export function useScheduleManager() {
         if (!user) return [];
 
         const dateStr = new Date().toISOString().split('T')[0];
-        const activeActivities = sourceActivities.filter(a => !a.is_completed);
+        const activeActivities = sourceActivities.filter(a => !a.is_completed && isActivityDueOnDate(a, dateStr));
         const flexMinutes = calculateFlexibleTime(user.sleep_hours, fixedBlocks);
         const allocated = allocateTime(activeActivities, flexMinutes);
 
@@ -139,6 +140,7 @@ export function useScheduleManager() {
                 let needsRecurringReset = false;
                 const updatedActivities = storeActivities.map(act => {
                     if (!act.recurrence || act.recurrence === 'none') return act;
+                    if (!isActivityDueOnDate(act, dateStr)) return act;
 
                     let isDueToday = false;
                     if (act.recurrence === 'daily') isDueToday = true;
@@ -157,7 +159,8 @@ export function useScheduleManager() {
                 }
 
                 // Only schedule activities that are NOT completed (after recurring reset)
-                const activeActivities = (needsRecurringReset ? updatedActivities : storeActivities).filter(a => !a.is_completed);
+                const activeActivities = (needsRecurringReset ? updatedActivities : storeActivities)
+                    .filter(a => !a.is_completed && isActivityDueOnDate(a, dateStr));
                 const allocated = allocateTime(activeActivities, availableFlexMinutes);
 
                 // Pass logs to the new adaptive engine
@@ -177,7 +180,7 @@ export function useScheduleManager() {
 
                 // Auto-Reschedule Alert for Gen Z (Feedback loop)
                 if (isScheduleOutdated) {
-                    const missedCount = activeActivities.length;
+                        const missedCount = activeActivities.length;
                     if (missedCount > 0) {
                         sendBrowserNotification(
                             "🔄 Auto-Reschedule Aktif",
@@ -254,7 +257,7 @@ export function useScheduleManager() {
         }
     };
 
-    const handleQuickAddExternal = (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category?: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string }) => {
+    const handleQuickAddExternal = (taskDetails: { name: string; duration: number; priority: 1 | 2 | 3 | 4 | 5; category?: string; preferred_start?: string; recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays'; deadline?: string; scheduled_date?: string }) => {
         const newAct = {
             id: `act-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             user_id: user?.id || "user",
@@ -265,6 +268,7 @@ export function useScheduleManager() {
             ...(taskDetails.preferred_start && { preferred_start: taskDetails.preferred_start }),
             recurrence: taskDetails.recurrence || 'none',
             date_added: new Date().toISOString().split('T')[0],
+            ...(taskDetails.scheduled_date && { scheduled_date: taskDetails.scheduled_date }),
             ...(taskDetails.deadline && { deadline: taskDetails.deadline }),
         };
 
@@ -320,10 +324,13 @@ export function useScheduleManager() {
     };
 
     const handleReoptimize = async () => {
-        if (!user || activities.length === 0) return;
+        const latestState = usePoeStore.getState();
+        const latestActivities = latestState.activities;
+
+        if (!latestState.user || latestActivities.length === 0) return;
 
         setIsReoptimizing(true);
-        let optimizedActivities = [...activities];
+        let optimizedActivities = [...latestActivities];
 
         try {
             // Allow Chroniq AI to review and re-categorize or break down any messy newly added activities

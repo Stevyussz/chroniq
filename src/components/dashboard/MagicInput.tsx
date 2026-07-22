@@ -42,7 +42,7 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
 
         setIsProcessing(true);
         try {
-            const data = await fetchChroniqAiJson<{ activities?: Array<{ name: string; target_duration?: number; priority?: number; category?: string; preferred_start?: string; recurrence?: Activity["recurrence"]; deadline?: string }> }>('/api/ai/parse-nl', {
+            const data = await fetchChroniqAiJson<{ activities?: Array<{ name: string; target_duration?: number; priority?: number; category?: string; preferred_start?: string; recurrence?: Activity["recurrence"]; scheduled_date?: string; deadline?: string }> }>('/api/ai/parse-nl', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: text.trim() })
@@ -58,6 +58,7 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
                     category: a.category || "Ad-Hoc (Dadakan)",
                     recurrence: a.recurrence || "none",
                     ...(a.preferred_start && { preferred_start: a.preferred_start }),
+                    ...(a.scheduled_date && { scheduled_date: a.scheduled_date }),
                     ...(a.deadline && { deadline: a.deadline })
                 }));
 

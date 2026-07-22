@@ -75,6 +75,8 @@ ATURAN PARSING (WAJIB DIIKUTI):
    - "deadline [tgl]/dikumpul [tgl]/kumpul [tgl]" → parse tanggalnya
    - Tidak ada → JANGAN isi field deadline
 
+9. **SCHEDULED DATE**: Jika user menyebut kapan tugas ingin DIKERJAKAN (besok, lusa, senin, minggu depan, selama 1 bulan), isi "scheduled_date" dengan YYYY-MM-DD. Jika hanya menyebut deadline, isi deadline dan pilih scheduled_date beberapa hari sebelum deadline bila memungkinkan. Jangan isi scheduled_date jika tugas bisa dikerjakan hari ini.
+
 Input user:
 "${text}"
 
@@ -88,6 +90,7 @@ Kembalikan JSON object valid dengan bentuk:
       "category": "Ad-Hoc (Dadakan)",
       "preferred_start": "HH:mm atau kosongkan",
       "recurrence": "none",
+      "scheduled_date": "YYYY-MM-DD atau kosongkan",
       "deadline": "YYYY-MM-DD atau kosongkan"
     }
   ]

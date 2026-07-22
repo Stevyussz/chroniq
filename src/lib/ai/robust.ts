@@ -130,6 +130,9 @@ export function normalizeAiActivities(items: unknown[], source: Activity[] = [])
                 ...(normalizeDate(item.deadline ?? sourceActivity?.deadline) && {
                     deadline: normalizeDate(item.deadline ?? sourceActivity?.deadline),
                 }),
+                ...(normalizeDate(item.scheduled_date ?? sourceActivity?.scheduled_date) && {
+                    scheduled_date: normalizeDate(item.scheduled_date ?? sourceActivity?.scheduled_date),
+                }),
                 ...(sourceActivity?.is_completed !== undefined && { is_completed: sourceActivity.is_completed }),
                 ...(sourceActivity?.date_added && { date_added: sourceActivity.date_added }),
             };
