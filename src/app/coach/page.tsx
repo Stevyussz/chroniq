@@ -16,6 +16,15 @@ interface ChatMessage {
     content: string;
 }
 
+const VALID_CATEGORIES = [
+    "Fokus Tinggi (Analitis)",
+    "Kreativitas (Desain/Nulis)",
+    "Tugas Ringan (Email/Kord)",
+    "Fisik (Beres-beres)",
+    "Belajar/Membaca",
+    "Ad-Hoc (Dadakan)",
+];
+
 const clampPriority = (priority: unknown): 1 | 2 | 3 | 4 | 5 => {
     const value = typeof priority === "number" ? priority : Number(priority);
     const normalized = Math.round(Number.isFinite(value) ? value : 3);
@@ -28,6 +37,21 @@ const clampDuration = (duration: unknown): number => {
     return Math.min(480, Math.max(5, normalized));
 };
 
+const normalizeCategory = (category: unknown) => {
+    return typeof category === "string" && VALID_CATEGORIES.includes(category)
+        ? category
+        : "Ad-Hoc (Dadakan)";
+};
+
+const normalizeRecurrence = (recurrence: unknown): 'none' | 'daily' | 'weekly' | 'weekdays' => {
+    return recurrence === "daily" || recurrence === "weekly" || recurrence === "weekdays" || recurrence === "none"
+        ? recurrence
+        : "none";
+};
+
+const isDateString = (value: unknown) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+const isTimeString = (value: unknown) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+
 export default function CoachPage() {
     const [input, setInput] = useState("");
     const [isThinking, setIsThinking] = useState(false);
@@ -36,7 +60,7 @@ export default function CoachPage() {
     const {
         level, exp, activities, currentSchedule, addActivity, removeActivity,
         energySlots, fixedBlocks, user, chatHistory, addChatMessage,
-        currentStreak, longestStreak, updateActivity
+        currentStreak, longestStreak, updateActivity, addChecklist, setEnergySlots
     } = usePoeStore();
     const { handleReoptimize } = useScheduleManager();
     const router = useRouter();
@@ -110,7 +134,34 @@ export default function CoachPage() {
                 upcomingTasksCount: currentSchedule.filter(b => b.type === 'activity').length,
                 pendingActivitiesCount: activities.length,
                 energyZones: energySlots.map(e => `${e.energy_level} (${e.start_time}-${e.end_time})`).join(", "),
-                fixedEvents: fixedBlocks.length
+                fixedEvents: fixedBlocks.length,
+                activeTasks: activities.slice(0, 50).map((activity) => ({
+                    id: activity.id,
+                    name: activity.name,
+                    duration: activity.target_duration,
+                    priority: activity.priority,
+                    category: activity.category,
+                    recurrence: activity.recurrence || "none",
+                    preferred_start: activity.preferred_start || null,
+                    scheduled_date: activity.scheduled_date || null,
+                    deadline: activity.deadline || null,
+                    checklistCount: activity.checklists?.length || 0,
+                })),
+                todayTimeline: currentSchedule
+                    .filter((block) => block.type === "activity")
+                    .slice(0, 20)
+                    .map((block) => ({
+                        task: activities.find((activity) => activity.id === block.activity_id)?.name || "Task",
+                        start: block.planned_start,
+                        end: block.planned_end,
+                        energy: block.energy_zone,
+                    })),
+                fixedBlocks: fixedBlocks.slice(0, 12).map((block) => ({
+                    title: block.title,
+                    start: block.start_time,
+                    end: block.end_time,
+                })),
+                energySlots,
             };
 
             const data = await fetchChroniqAiJson<{ reply?: string }>('/api/ai/chat', {
@@ -142,11 +193,11 @@ export default function CoachPage() {
                             name: payload.name || "Tugas Baru",
                             target_duration: clampDuration(payload.duration),
                             priority: clampPriority(payload.priority),
-                            category: payload.category || "Ad-Hoc (Dadakan)",
-                            recurrence: payload.recurrence || 'none',
-                            ...(payload.preferred_start && { preferred_start: payload.preferred_start }),
-                            ...(payload.scheduled_date && { scheduled_date: payload.scheduled_date }),
-                            ...(payload.deadline && { deadline: payload.deadline })
+                            category: normalizeCategory(payload.category),
+                            recurrence: normalizeRecurrence(payload.recurrence),
+                            ...(isTimeString(payload.preferred_start) && { preferred_start: payload.preferred_start }),
+                            ...(isDateString(payload.scheduled_date) && { scheduled_date: payload.scheduled_date }),
+                            ...(isDateString(payload.deadline) && { deadline: payload.deadline })
                         });
                         handleReoptimize();
                         actionParsed = true;
@@ -173,12 +224,12 @@ export default function CoachPage() {
                                 name: task.name,
                                 target_duration: clampDuration(task.duration),
                                 priority: clampPriority(task.priority),
-                                category: task.category || "Belajar/Membaca",
-                                recurrence: task.recurrence || 'none',
+                                category: normalizeCategory(task.category || "Belajar/Membaca"),
+                                recurrence: normalizeRecurrence(task.recurrence),
                                 date_added: new Date().toISOString().split('T')[0],
-                                ...(task.preferred_start && { preferred_start: task.preferred_start }),
-                                ...(task.scheduled_date && { scheduled_date: task.scheduled_date }),
-                                ...(task.deadline && { deadline: task.deadline })
+                                ...(isTimeString(task.preferred_start) && { preferred_start: task.preferred_start }),
+                                ...(isDateString(task.scheduled_date) && { scheduled_date: task.scheduled_date }),
+                                ...(isDateString(task.deadline) && { deadline: task.deadline })
                             });
                         });
 
@@ -198,6 +249,78 @@ export default function CoachPage() {
                             actionParsed = true;
                         }
                     }
+                    else if (actionData.action === "UPDATE_TASK" || actionData.action === "RESCHEDULE_TASK") {
+                        const payload = actionData.payload || {};
+                        const currentActivities = usePoeStore.getState().activities;
+                        const targetName = typeof payload.name === "string" ? payload.name.toLowerCase() : "";
+                        const target = targetName ? currentActivities.find(a => a.name.toLowerCase().includes(targetName)) : null;
+
+                        if (target) {
+                            const updates: {
+                                name?: string;
+                                target_duration?: number;
+                                priority?: 1 | 2 | 3 | 4 | 5;
+                                category?: string;
+                                recurrence?: 'none' | 'daily' | 'weekly' | 'weekdays';
+                                preferred_start?: string;
+                                scheduled_date?: string;
+                                deadline?: string;
+                            } = {};
+
+                            if (typeof payload.new_name === "string" && payload.new_name.trim()) updates.name = payload.new_name.trim();
+                            if (payload.duration !== undefined) updates.target_duration = clampDuration(payload.duration);
+                            if (payload.priority !== undefined) updates.priority = clampPriority(payload.priority);
+                            if (payload.category !== undefined) updates.category = normalizeCategory(payload.category);
+                            if (payload.recurrence !== undefined) updates.recurrence = normalizeRecurrence(payload.recurrence);
+                            if (isTimeString(payload.preferred_start)) updates.preferred_start = payload.preferred_start;
+                            if (isDateString(payload.scheduled_date)) updates.scheduled_date = payload.scheduled_date;
+                            if (isDateString(payload.deadline)) updates.deadline = payload.deadline;
+
+                            if (Object.keys(updates).length > 0) {
+                                updateActivity(target.id, updates);
+                                handleReoptimize();
+                                actionParsed = true;
+                            }
+                        }
+                    }
+                    else if (actionData.action === "ADD_CHECKLIST") {
+                        const payload = actionData.payload || {};
+                        const currentActivities = usePoeStore.getState().activities;
+                        const targetName = typeof payload.name === "string" ? payload.name.toLowerCase() : "";
+                        const target = targetName ? currentActivities.find(a => a.name.toLowerCase().includes(targetName)) : null;
+                        const items = Array.isArray(payload.items) ? payload.items : [];
+
+                        if (target && items.length > 0) {
+                            items
+                                .filter((item: unknown): item is string => typeof item === "string" && item.trim().length > 0)
+                                .slice(0, 12)
+                                .forEach((item: string) => addChecklist(target.id, item.trim()));
+                            actionParsed = true;
+                        }
+                    }
+                    else if (actionData.action === "SET_ENERGY_SLOTS") {
+                        const slots = Array.isArray(actionData.payload?.slots) ? actionData.payload.slots : [];
+                        const validSlots = slots
+                            .filter((slot: { energy_level?: unknown; start_time?: unknown; end_time?: unknown }) =>
+                                (slot.energy_level === "peak" || slot.energy_level === "medium" || slot.energy_level === "low") &&
+                                isTimeString(slot.start_time) &&
+                                isTimeString(slot.end_time)
+                            )
+                            .slice(0, 3)
+                            .map((slot: { energy_level: "peak" | "medium" | "low"; start_time: string; end_time: string }, index: number) => ({
+                                id: `coach-energy-${index + 1}`,
+                                user_id: user?.id || "user",
+                                start_time: slot.start_time,
+                                end_time: slot.end_time,
+                                energy_level: slot.energy_level,
+                            }));
+
+                        if (validSlots.length === 3) {
+                            setEnergySlots(validSlots);
+                            handleReoptimize();
+                            actionParsed = true;
+                        }
+                    }
                     else if (actionData.action === "DELETE_TASK") {
                         const payload = actionData.payload || {};
                         const currentActivities = usePoeStore.getState().activities;
@@ -205,6 +328,7 @@ export default function CoachPage() {
                         const target = targetName ? currentActivities.find(a => a.name.toLowerCase().includes(targetName)) : null;
                         if (target) {
                             removeActivity(target.id);
+                            handleReoptimize();
                             actionParsed = true;
                         }
                     }
