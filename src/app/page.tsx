@@ -7,7 +7,7 @@ import { calculateDisciplineScore, calculatePriorityAlignment, calculateTPI, cal
 import { analyzeExecutionHistory } from "@/lib/engine/adaptiveLearning";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Download, Upload } from "lucide-react";
+import { AlertCircle, Download, RotateCcw, Upload } from "lucide-react";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
 import { KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -29,7 +29,7 @@ import { useScheduleManager } from "@/hooks/useScheduleManager";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, currentStreak, longestStreak, resetTimeline } = usePoeStore();
+  const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, currentStreak, longestStreak, resetTimeline, resetAll } = usePoeStore();
   const [isClient, setIsClient] = useState(false);
   const { width, height } = useWindowSize();
 
@@ -83,6 +83,20 @@ export default function Dashboard() {
     if (type === "break") return "Deep Work Break";
     if (type === "sleep") return "Sleep";
     return type;
+  };
+
+  const handleResetToOnboarding = () => {
+    const shouldReset = window.confirm(
+      "Setel ulang Chroniq dari awal? Semua jadwal, tugas, log eksekusi, streak, chat Chroniq AI, dan pengaturan lokal akan dihapus."
+    );
+    if (!shouldReset) return;
+
+    const confirmed = window.confirm("Yakin banget? Sebaiknya backup data dulu kalau masih dibutuhkan.");
+    if (!confirmed) return;
+
+    resetAll();
+    setShowSettings(false);
+    router.replace("/onboarding");
   };
 
   // Metrics & AI Intelligence
@@ -266,6 +280,23 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-[#fecaca] bg-[#fef2f2]/70 p-4 dark:border-[#ef4444]/30 dark:bg-[#7f1d1d]/15">
+                <div>
+                  <h3 className="text-sm font-bold text-[#991b1b] dark:text-[#fecaca]">Setel Ulang Onboarding</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[#7f1d1d]/80 dark:text-[#fecaca]/75">
+                    Gunakan ini kalau ingin mulai Chroniq dari awal, mengganti profil energi, jadwal tetap, dan setup Chroniq AI.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleResetToOnboarding}
+                  variant="outline"
+                  className="w-full justify-start border-[#ef4444]/50 bg-white/70 text-[#b91c1c] hover:bg-[#fee2e2] dark:border-[#ef4444]/40 dark:bg-[#1e1e24]/50 dark:text-[#fecaca] dark:hover:bg-[#7f1d1d]/25"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset & Buka Onboarding
+                </Button>
               </div>
 
             </CardContent>
