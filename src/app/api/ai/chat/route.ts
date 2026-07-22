@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { buildOfflineCoachReply } from '@/lib/ai/fallback';
-import { hasChroniqAiKey, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { generateChroniqAiText, GroqMessage } from '@/lib/ai/groq';
+import { hasChroniqAiKey, retryChroniqAi } from '@/lib/ai/robust';
 
 // CHRONIQ AI COACH — World-Class System Prompt
 // Research foundations embedded in persona:
@@ -78,40 +76,23 @@ Kategori valid: "Fokus Tinggi (Analitis)" | "Kreativitas (Desain/Nulis)" | "Tuga
 
 FILOSOFI: "Sistem yang baik melayani ritme biologis manusia, bukan sebaliknya."`;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-lite",
-            systemInstruction: systemPrompt,
-            generationConfig: {
-                temperature: 0.7,       // Natural coaching conversation — some variability is good
-                maxOutputTokens: 800,  // Concise coaching responses; verbose is worse for UX
-            }
-        });
-
-        // Build alternating history required by the active Chroniq AI provider
-        const userMessages = messages.filter((m: { role: string }) => m.role === 'user');
-        const lastUserPrompt = userMessages[userMessages.length - 1]?.content || "Halo Chroniq!";
-
-        const rawHistory = messages.slice(0, messages.length - 1);
-        const formattedHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
-        let expectedRole: "user" | "model" = 'user';
-
-        for (const msg of rawHistory) {
-            const role = msg.role === 'user' ? 'user' : 'model';
-            if (role === expectedRole) {
-                formattedHistory.push({ role, parts: [{ text: msg.content }] });
-                expectedRole = expectedRole === 'user' ? 'model' : 'user';
-            } else if (formattedHistory.length > 0) {
-                // Merge consecutive same-role messages
-                formattedHistory[formattedHistory.length - 1].parts[0].text += '\n\n' + msg.content;
-            } else if (role === 'model') {
-                continue; // Skip model-first message — history must start with user
-            }
-        }
+        const formattedMessages: GroqMessage[] = [
+            { role: "system", content: systemPrompt },
+            ...messages
+                .filter((msg: { role?: string; content?: string }) => typeof msg.content === "string" && msg.content.trim())
+                .slice(-12)
+                .map((msg: { role: string; content: string }) => ({
+                    role: msg.role === "user" ? "user" as const : "assistant" as const,
+                    content: msg.content,
+                })),
+        ];
 
         const textResponse = await retryChroniqAi(async () => {
-            const chatSession = model.startChat({ history: formattedHistory });
-            const result = await withAiTimeout(chatSession.sendMessage(lastUserPrompt), "Chroniq AI chat");
-            return readAiText(result, "Chroniq AI chat");
+            return generateChroniqAiText({
+                messages: formattedMessages,
+                temperature: 0.7,
+                maxTokens: 800,
+            });
         }, "Chroniq AI chat");
 
         return NextResponse.json({ reply: textResponse });

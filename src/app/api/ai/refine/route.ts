@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { refineActivitiesOffline } from '@/lib/ai/fallback';
-import { extractJsonPayload, hasChroniqAiKey, normalizeAiActivities, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
+import { generateChroniqAiText } from '@/lib/ai/groq';
+import { extractJsonPayload, hasChroniqAiKey, normalizeAiActivities, retryChroniqAi } from '@/lib/ai/robust';
 import { Activity } from '@/types';
-
-// Initialize the Chroniq AI provider SDK
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
     let fallbackActivities: Activity[] = [];
@@ -22,47 +19,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ refinedActivities: refineActivitiesOffline(activities as Activity[]), mode: "offline" });
         }
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-lite",
-            generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.1,        // Very deterministic — this is a classification/correction task
-                maxOutputTokens: 1500,  // Refine output matches input count (+ potential splits)
-                responseSchema: {
-                    type: SchemaType.ARRAY,
-                    items: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            id: { type: SchemaType.STRING },
-                            user_id: { type: SchemaType.STRING },
-                            name: {
-                                type: SchemaType.STRING,
-                                description: "Nama tugas yang spesifik dan jelas (B. Indonesia)"
-                            },
-                            target_duration: {
-                                type: SchemaType.INTEGER,
-                                description: "Durasi dalam menit, maks 90 menit per tugas. Jika aslinya lebih, pecah menjadi beberapa array object berturutan."
-                            },
-                            priority: {
-                                type: SchemaType.INTEGER,
-                                description: "1-5. Koreksi berdasarkan kategori kognitifnya. (Misal: 'Balas Email' max 3, 'Belajar/Coding' minimal 4)."
-                            },
-                            category: {
-                                type: SchemaType.STRING,
-                                description: "Hanya gunakan salah satu dari: 'Fokus Tinggi (Analitis)', 'Kreativitas (Desain/Nulis)', 'Tugas Ringan (Email/Kord)', 'Fisik (Beres-beres)', 'Belajar/Membaca', 'Ad-Hoc (Dadakan)'"
-                            },
-                            preferred_start: {
-                                type: SchemaType.STRING,
-                                description: "Format HH:mm. Opsional! Isikan HANYA JIKA tugas ini secara logika manusia HARUS dilakukan di pagi/siang/malam hari (Misal: 'Mandi Pagi' -> 06:00, 'Makan Siang' -> 12:30). Jangan asal isi jika tidak relevan.",
-                                nullable: true
-                            }
-                        },
-                        required: ["id", "user_id", "name", "target_duration", "priority", "category"]
-                    }
-                }
-            }
-        });
-
         const prompt = `
 Anda adalah Chroniq AI, Asisten Produktivitas Bawah Sadar.
 Tugas Anda: Membaca mentahan To-Do List yang diketik User secara buru-buru, lalu "Merapikan, Memecah, dan Mengkoreksi" agar sesuai standar algoritma penjadwalan.
@@ -75,19 +31,25 @@ Aturan Wajib:
 3. Koreksi KATEGORI yang salah. Misal user menulis "Sapu rumah" tapi kategorinya "Fokus Tinggi", ubah menjadi "Fisik (Beres-beres)".
 4. SUSUNAN KRONOLOGIS (Sangat Penting!): Evaluasi nama tugas berdasarkan logika manusia sehari-hari. Jika tugas mensyaratkan waktu tertentu (contoh: "Sarapan", "Mandi Pagi", "Olahraga Pagi", "Tidur Siang"), ANDA WAJIB mengisi field 'preferred_start' (contoh: "07:00", "06:30"). Biarkan kosong/null untuk tugas yang bebas dikerjakan kapan saja.
 5. Kembalikan array berisi seluruh aktivitas (baik yang dipecah maupun yang tidak, pastikan tidak ada yang hilang).
-6. OUTPUT HARUS BERUPA ARRAY JSON STRICT.
+6. OUTPUT HARUS BERUPA JSON OBJECT STRICT dengan bentuk:
+{ "refinedActivities": [aktivitas hasil refine] }
 
 Input Mentah User:
 ${JSON.stringify(activities, null, 2)}
 `;
 
         const textResponse = await retryChroniqAi(async () => {
-            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI refine");
-            return readAiText(result, "Chroniq AI refine");
+            return generateChroniqAiText({
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.1,
+                maxTokens: 1500,
+                jsonMode: true,
+            });
         }, "Chroniq AI refine");
 
         try {
-            const parsedArray = extractJsonPayload<unknown[]>(textResponse, "array");
+            const parsedObject = extractJsonPayload<{ refinedActivities?: unknown[] } | unknown[]>(textResponse, "object");
+            const parsedArray = Array.isArray(parsedObject) ? parsedObject : parsedObject.refinedActivities;
             if (!Array.isArray(parsedArray) || parsedArray.length === 0) {
                 throw new Error("AI returned empty or non-array JSON");
             }

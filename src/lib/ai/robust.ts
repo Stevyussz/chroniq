@@ -6,7 +6,7 @@ export const AI_TIMEOUT_MS = 14_000;
 const validRecurrences = ["none", "daily", "weekly", "weekdays"] as const;
 
 export function hasChroniqAiKey() {
-    return Boolean(process.env.GEMINI_API_KEY);
+    return Boolean(process.env.GROQ_API_KEY);
 }
 
 export async function withAiTimeout<T>(promise: Promise<T>, label: string, timeoutMs = AI_TIMEOUT_MS): Promise<T> {
@@ -45,12 +45,6 @@ export async function retryChroniqAi<T>(operation: () => Promise<T>, label: stri
     }
 
     throw lastError instanceof Error ? lastError : new Error(`${label} failed`);
-}
-
-export function readAiText(result: { response: { text: () => string } }, label: string) {
-    const text = result.response.text().trim();
-    if (!text) throw new Error(`${label} returned an empty response`);
-    return text;
 }
 
 export function extractJsonPayload<T>(rawText: string, kind: "array" | "object"): T {

@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { splitTaskOffline } from '@/lib/ai/fallback';
-import { extractJsonPayload, hasChroniqAiKey, normalizeAiSubtasks, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { generateChroniqAiText } from '@/lib/ai/groq';
+import { extractJsonPayload, hasChroniqAiKey, normalizeAiSubtasks, retryChroniqAi } from '@/lib/ai/robust';
 
 /**
  * AI Task Splitter — Chroniq Engine
@@ -32,36 +30,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ subtasks: splitTaskOffline(taskName, Number(targetDuration)), mode: "offline" });
         }
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-lite",
-            generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.2,        // Lower = more deterministic + faster for structured output
-                maxOutputTokens: 1024,   // Split output is short; cap to avoid runaway generation
-                responseSchema: {
-                    type: SchemaType.ARRAY,
-                    items: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            name: {
-                                type: SchemaType.STRING,
-                                description: "Nama sub-tugas yang spesifik, actionable, dan konkrit dalam Bahasa Indonesia. Harus berbentuk kata kerja + objek. Contoh BAIK: 'Baca dan pahami intro bab 3', 'Tulis outline poin utama'. Contoh BURUK: 'Bagian 1', 'Sub-task A'."
-                            },
-                            duration: {
-                                type: SchemaType.INTEGER,
-                                description: `Durasi sub-tugas dalam menit. BATAS ATAS: 90 menit. Batas bawah: 10 menit. Pilih: 15, 20, 25, 30, 45, 60, atau 90. Total semua sub-tugas ≈ ${targetDuration} menit.`
-                            },
-                            tip: {
-                                type: SchemaType.STRING,
-                                description: "Satu kalimat tips pendek tentang cara terbaik mengerjakan sub-tugas ini. Spesifik, praktis, bukan platitude. Contoh: 'Matikan notifikasi HP untuk sesi ini', 'Baca aktif sambil coret poin penting', 'Set timer Pomodoro 25 menit'."
-                            }
-                        },
-                        required: ["name", "duration", "tip"]
-                    }
-                }
-            }
-        });
-
         const prompt = `
 Kamu adalah Chroniq AI Task Architect — spesialis dalam memecah tugas besar menjadi langkah-langkah yang mudah dimulai dan diselesaikan.
 
@@ -79,16 +47,22 @@ PRINSIP PEMECAHAN (WAJIB):
 6. **JUMLAH SUB-TUGAS**: Minimum 2, maksimum 6. Jangan terlalu granular (< 10 menit) atau terlalu besar (> 90 menit).
 7. **TIP YANG BERGUNA**: Setiap tip harus SPESIFIK untuk sub-tugas itu, bukan generic "fokus ya!".
 
-Kembalikan JSON array yang valid.
+Kembalikan JSON object valid dengan bentuk:
+{ "subtasks": [{ "name": "...", "duration": 30, "tip": "..." }] }
 `;
 
         const textResponse = await retryChroniqAi(async () => {
-            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI split");
-            return readAiText(result, "Chroniq AI split");
+            return generateChroniqAiText({
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2,
+                maxTokens: 1024,
+                jsonMode: true,
+            });
         }, "Chroniq AI split");
 
         try {
-            const parsedArray = extractJsonPayload<unknown[]>(textResponse, "array");
+            const parsedObject = extractJsonPayload<{ subtasks?: unknown[] } | unknown[]>(textResponse, "object");
+            const parsedArray = Array.isArray(parsedObject) ? parsedObject : parsedObject.subtasks;
             if (!Array.isArray(parsedArray) || parsedArray.length === 0) {
                 throw new Error("AI returned empty or non-array JSON");
             }

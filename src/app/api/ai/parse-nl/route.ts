@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { parseTasksOffline, refineActivitiesOffline } from '@/lib/ai/fallback';
-import { extractJsonPayload, hasChroniqAiKey, normalizeAiActivities, readAiText, retryChroniqAi, withAiTimeout } from '@/lib/ai/robust';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { generateChroniqAiText } from '@/lib/ai/groq';
+import { extractJsonPayload, hasChroniqAiKey, normalizeAiActivities, retryChroniqAi } from '@/lib/ai/robust';
 
 /**
  * AI Natural Language Parser — Chroniq Engine
@@ -37,52 +35,6 @@ export async function POST(req: Request) {
         const wakeTime = userContext?.wakeUpTime || '07:00';
         const currentHour = new Date().getHours();
         const timeOfDay = currentHour < 12 ? 'pagi' : currentHour < 15 ? 'siang' : currentHour < 18 ? 'sore' : 'malam';
-
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.5-flash-lite",
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    temperature: 0.2,       // Deterministic structured output, no creativity needed
-                    maxOutputTokens: 1500,  // Increased for Brain Dump Mode (supports 10-15 tasks)
-                    responseSchema: {
-                    type: SchemaType.ARRAY,
-                    items: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            name: {
-                                type: SchemaType.STRING,
-                                description: "Nama tugas yang spesifik, actionable, dan konkrit (Bahasa Indonesia). Bukan generik. Contoh BAIK: 'Review bab 3 Statistik', 'Balas email klien Andi'. Contoh BURUK: 'Belajar', 'Kerja'."
-                            },
-                            target_duration: {
-                                type: SchemaType.INTEGER,
-                                description: "Estimasi durasi realistis dalam menit. Batas MAKSIMAL per satu tugas adalah 90 menit (ultradian cycle). Jika user menyebut durasi > 90 menit, kembalikan sebagai task terpisah. Jika tidak disebutkan, tebak berdasarkan jenis tugas: email = 15-20, belajar materi = 45-60, presentasi/laporan = 60-90, olahraga = 30-45."
-                            },
-                            priority: {
-                                type: SchemaType.INTEGER,
-                                description: "Angka 1-5. Deteksi dari kata kunci: 'urgent/deadline/mati-matian/besok ujian' = 5, 'penting' = 4, 'biasa' = 3, 'nanti/kalau sempat' = 2, 'opsional' = 1. Tebak dari konteks jika tidak disebut."
-                            },
-                            category: {
-                                type: SchemaType.STRING,
-                                description: "Pilih SATU yang paling sesuai: 'Fokus Tinggi (Analitis)' untuk coding/matematika/analisis, 'Kreativitas (Desain/Nulis)' untuk menulis/desain/brainstorm, 'Tugas Ringan (Email/Kord)' untuk email/admin/koordinasi, 'Fisik (Beres-beres)' untuk olahraga/bersih-bersih/memasak, 'Belajar/Membaca' untuk membaca/review materi/latihan soal, 'Ad-Hoc (Dadakan)' untuk tugas mendadak/tidak terklasifikasi."
-                            },
-                            preferred_start: {
-                                type: SchemaType.STRING,
-                                description: `OPSIONAL. Format HH:mm 24 jam. Isi HANYA jika user eksplisit menyebut waktu (mis: 'jam 2 siang'='14:00', 'malam'='19:00', 'pagi'='08:00'). User bangun jam ${wakeTime}, jadi 'pagi' relatif ke waktu bangunnya. Kosongkan jika tidak ada petunjuk waktu.`
-                            },
-                            recurrence: {
-                                type: SchemaType.STRING,
-                                description: "Pola pengulangan tugas. Deteksi dari kata kunci: 'setiap hari/tiap hari/daily/rutin setiap hari' = 'daily', 'hari kerja/senin-jumat/weekday' = 'weekdays', 'tiap minggu/setiap minggu/weekly' = 'weekly', tidak ada kata kunci = 'none'."
-                            },
-                            deadline: {
-                                type: SchemaType.STRING,
-                                description: "OPSIONAL. Format YYYY-MM-DD. Isi HANYA jika user sebut tenggat/deadline/dikumpul/kumpul. Kosongkan jika tidak ada."
-                            }
-                        },
-                        required: ["name", "target_duration", "priority", "category", "recurrence"]
-                    }
-                }
-            }
-        });
 
         const todayISO = new Date().toISOString().split('T')[0];
         const prompt = `
@@ -126,16 +78,35 @@ ATURAN PARSING (WAJIB DIIKUTI):
 Input user:
 "${text}"
 
-Kembalikan array JSON yang valid. Jangan tambahkan teks apapun di luar JSON.
+Kembalikan JSON object valid dengan bentuk:
+{
+  "activities": [
+    {
+      "name": "Nama tugas spesifik",
+      "target_duration": 30,
+      "priority": 3,
+      "category": "Ad-Hoc (Dadakan)",
+      "preferred_start": "HH:mm atau kosongkan",
+      "recurrence": "none",
+      "deadline": "YYYY-MM-DD atau kosongkan"
+    }
+  ]
+}
+Jangan tambahkan teks apapun di luar JSON.
 `;
 
         const textResponse = await retryChroniqAi(async () => {
-            const result = await withAiTimeout(model.generateContent(prompt), "Chroniq AI parser");
-            return readAiText(result, "Chroniq AI parser");
+            return generateChroniqAiText({
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2,
+                maxTokens: 1500,
+                jsonMode: true,
+            });
         }, "Chroniq AI parser");
 
         try {
-            const parsedArray = extractJsonPayload<unknown[]>(textResponse, "array");
+            const parsedObject = extractJsonPayload<{ activities?: unknown[] } | unknown[]>(textResponse, "object");
+            const parsedArray = Array.isArray(parsedObject) ? parsedObject : parsedObject.activities;
             if (!Array.isArray(parsedArray)) {
                 throw new Error("AI returned non-array JSON");
             }
