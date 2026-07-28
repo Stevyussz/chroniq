@@ -247,7 +247,8 @@ export function useScheduleManager() {
                              // Trigger full AI re-optimization so it dynamically flows everything else!
                              setIsReoptimizing(true);
                              setTimeout(() => {
-                                 buildSchedule(newActivities);
+                                 const newSchedule = buildSchedule(newActivities);
+                                 setCurrentSchedule(newSchedule);
                                  setIsReoptimizing(false);
                              }, 400); // slight delay so the visual drop animation finishes smoothly
                          }
