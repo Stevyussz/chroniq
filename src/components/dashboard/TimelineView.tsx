@@ -26,6 +26,7 @@ interface TimelineViewProps {
     onAddChecklist?: (activityId: string, title: string) => void;
     onRemoveChecklist?: (activityId: string, checklistId: string) => void;
     onDeleteBlock?: (activityId: string) => void;
+    isReoptimizing?: boolean;
 }
 
 // Sub-component for Sortable Drag-and-Drop blocks
@@ -119,9 +120,18 @@ export function TimelineView({
     onToggleChecklist,
     onAddChecklist,
     onRemoveChecklist,
-    onDeleteBlock
+    onDeleteBlock,
+    isReoptimizing = false,
 }: TimelineViewProps) {
     const [newChecklistTitle, setNewChecklistTitle] = React.useState<{ [key: string]: string }>({});
+    const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
+
+    // Auto-clear delete confirmation after 3 seconds
+    React.useEffect(() => {
+        if (!deleteConfirmId) return;
+        const t = setTimeout(() => setDeleteConfirmId(null), 3000);
+        return () => clearTimeout(t);
+    }, [deleteConfirmId]);
 
     const handleAddChecklist = (activityId: string) => {
         const title = newChecklistTitle[activityId];
@@ -145,11 +155,19 @@ export function TimelineView({
                     <MapPin className="w-4 h-4 mr-1.5 inline-block" /> Sync to Now
                 </Button>
             </CardHeader>
-            <CardContent className="px-4 sm:px-8 pb-8">
+            <CardContent className="px-4 sm:px-8 pb-8 relative">
+                {/* AI Re-optimizing overlay banner */}
+                {isReoptimizing && (
+                    <div className="flex items-center justify-center gap-2 mb-4 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#fff3e0] to-[#ffe0b2] dark:from-[#ff8a65]/20 dark:to-[#ff7043]/10 border border-[#ffccbc] dark:border-[#ff8a65]/30 text-[#bf360c] dark:text-[#ffab91] text-sm font-bold animate-pulse shadow-sm">
+                        <span className="inline-block animate-spin">⚙️</span>
+                        AI sedang menyusun ulang jadwal berdasarkan posisi baru...
+                    </div>
+                )}
                 {currentSchedule.length === 0 ? (
-                    <div className="text-[#a1887f] dark:text-[#a19d9b] text-center p-12 bg-white/30 dark:bg-[#2d2d35]/30 backdrop-blur-sm rounded-2xl border-2 border-dashed border-white/50 dark:border-white/10 transition-colors">
-                        <Leaf className="w-10 h-10 mx-auto mb-3 text-[#ffccbc] dark:text-[#ff8a65]" />
-                        Belum ada jadwal yang di-generate. Silakan isi form Quick Add atau Onboarding.
+                    <div className="text-center p-12 bg-white/30 dark:bg-[#2d2d35]/30 backdrop-blur-sm rounded-2xl border-2 border-dashed border-white/50 dark:border-white/10 transition-colors">
+                        <Leaf className="w-12 h-12 mx-auto mb-4 text-[#ffccbc] dark:text-[#ff8a65] opacity-70" />
+                        <p className="text-[#8d6e63] dark:text-[#a19d9b] font-bold text-base mb-1">Jadwal harimu masih kosong</p>
+                        <p className="text-[#a1887f] dark:text-[#7d6b63] text-sm">Ketik tugas pertamamu di kolom AI di atas ↑ atau tambahkan lewat form manual.</p>
                     </div>
                 ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -256,8 +274,28 @@ export function TimelineView({
 
                                                 {!isCompleted && !isSkipped && block.type === "activity" && activeBlockId !== block.id && !evalBlockId && (
                                                     <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
-                                                        <Button size="sm" variant="ghost" className="flex-none text-[#a1887f] dark:text-[#a19d9b] hover:text-[#d32f2f] dark:hover:text-[#ff8a80] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 rounded-lg h-9 px-3 transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeleteBlock && onDeleteBlock(block.activity_id)} aria-label={`Hapus ${getActName(block.activity_id, block.type)}`}>
-                                                            <Trash2 className="w-4 h-4" />
+                                                        <Button size="sm" variant="ghost"
+                                                            className={`flex-none rounded-lg h-9 px-3 transition-all font-bold ${
+                                                                deleteConfirmId === block.activity_id
+                                                                    ? 'bg-[#d32f2f] text-white hover:bg-[#b71c1c] scale-105 shadow-md'
+                                                                    : 'text-[#a1887f] dark:text-[#a19d9b] hover:text-[#d32f2f] dark:hover:text-[#ff8a80] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20'
+                                                            }`}
+                                                            onPointerDown={(e) => e.stopPropagation()}
+                                                            onClick={() => {
+                                                                if (deleteConfirmId === block.activity_id) {
+                                                                    onDeleteBlock && onDeleteBlock(block.activity_id);
+                                                                    setDeleteConfirmId(null);
+                                                                } else {
+                                                                    setDeleteConfirmId(block.activity_id);
+                                                                }
+                                                            }}
+                                                            aria-label={`Hapus ${getActName(block.activity_id, block.type)}`}
+                                                            title={deleteConfirmId === block.activity_id ? 'Klik lagi untuk konfirmasi hapus' : 'Hapus tugas'}
+                                                        >
+                                                            {deleteConfirmId === block.activity_id
+                                                                ? <><Trash2 className="w-4 h-4 mr-1" /> Yakin?</>
+                                                                : <Trash2 className="w-4 h-4" />
+                                                            }
                                                         </Button>
                                                         <Button size="sm" variant="ghost" className="flex-1 sm:flex-none text-[#ef5350] dark:text-[#ff8a80] hover:text-[#c62828] dark:hover:text-[#d32f2f] hover:bg-[#ffebee] dark:hover:bg-[#d32f2f]/20 font-bold rounded-xl transition-colors" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSkip(block.id)}>Skip</Button>
                                                         <Button size="sm" className="flex-1 sm:flex-none bg-[#ffab91] dark:bg-[#ff8a65] hover:bg-[#ff8a65] dark:hover:bg-[#ff7043] text-white shadow-sm font-bold transition-transform hover:scale-105 rounded-xl h-9 px-4" onPointerDown={(e) => e.stopPropagation()} onClick={() => handleStart(block.id)}>

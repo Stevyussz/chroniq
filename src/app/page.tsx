@@ -211,6 +211,7 @@ export default function Dashboard() {
           onAddChecklist={usePoeStore.getState().addChecklist}
           onRemoveChecklist={usePoeStore.getState().removeChecklist}
           onDeleteBlock={handleDeleteActivity}
+          isReoptimizing={isReoptimizing}
         />
 
       </div>

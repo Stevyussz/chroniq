@@ -435,7 +435,7 @@ export function useScheduleManager() {
         URL.revokeObjectURL(url);
     };
 
-    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>, onSuccess?: (msg: string) => void, onError?: (msg: string) => void) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
@@ -444,12 +444,12 @@ export function useScheduleManager() {
                 const data = JSON.parse(event.target?.result as string);
                 if (data.user && data.activities && data.currentSchedule) {
                     restoreData(data);
-                    alert("Data Chroniq berhasil direstore!");
+                    onSuccess?.("Data Chroniq berhasil direstore! ✅");
                 } else {
-                    alert("File JSON tidak valid (Corrupted ChroniqBackup).");
+                    onError?.("File tidak valid — pastikan file backup Chroniq yang asli.");
                 }
             } catch {
-                alert("Gagal membaca file JSON.");
+                onError?.("Gagal membaca file JSON. File mungkin rusak.");
             }
         };
         reader.readAsText(file);

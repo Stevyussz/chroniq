@@ -17,7 +17,13 @@ interface MagicInputProps {
 export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }: MagicInputProps) {
     const [text, setText] = useState("");
     const [isBrainDump, setIsBrainDump] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const showError = (msg: string) => {
+        setErrorMessage(msg);
+        setTimeout(() => setErrorMessage(""), 4000);
+    };
 
     // Auto-focus when switching to brain dump mode
     useEffect(() => {
@@ -70,7 +76,7 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
             }
         } catch (error) {
             console.error("AI NLP Error:", error);
-            alert(error instanceof Error ? error.message : "Chroniq AI sedang sibuk. Coba lagi sebentar.");
+            showError(error instanceof Error ? error.message : "Chroniq AI sedang sibuk. Coba lagi sebentar.");
         } finally {
             setIsProcessing(false);
         }
@@ -182,6 +188,11 @@ export function MagicInput({ onActivitiesParsed, isProcessing, setIsProcessing }
                     </span>
                 )}
             </div>
+            {errorMessage && (
+                <div className="mt-2 mx-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-[#ffebee] dark:bg-[#d32f2f]/20 border border-[#ffcdd2] dark:border-[#d32f2f]/40 text-[#c62828] dark:text-[#ef9a9a] text-xs font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                    <span>⚠️</span> {errorMessage}
+                </div>
+            )}
         </form>
     );
 }
