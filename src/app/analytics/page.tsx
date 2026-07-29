@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePoeStore } from "@/store/useStore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { generateWeeklyInsights } from "@/lib/engine/adaptation";
-import { AlertCircle, BarChart3, Brain, CheckCircle2, Clock3, Flame, Lightbulb, ListChecks, Target, Zap } from "lucide-react";
+import { AlertCircle, Brain, CheckCircle2, Clock3, Flame, Lightbulb, ListChecks, Target, Zap } from "lucide-react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { calculateDisciplineScore, calculatePriorityAlignment, calculateTPI, calculateEnergyReliability } from "@/lib/engine/scoring";
 import { AiReflectionCard } from "@/components/analytics/AiReflectionCard";
@@ -113,10 +113,6 @@ export default function AnalyticsPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 space-y-8">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-[#c7d2fe] bg-white/70 px-3 py-1 text-xs font-bold uppercase text-[#4f46e5] shadow-sm dark:border-[#818cf8]/30 dark:bg-[#1e1b4b]/35 dark:text-[#c7d2fe]">
-                        <BarChart3 className="h-3.5 w-3.5" />
-                        Weekly Intelligence
-                    </div>
                     <h1 className="mt-4 text-3xl font-black tracking-tight text-[#1f2937] dark:text-[#e5edf8] sm:text-4xl">Analytics</h1>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748b] dark:text-[#94a3b8]">
                         Ringkasan performa, kualitas fokus, dan sinyal adaptasi dari eksekusi harianmu.

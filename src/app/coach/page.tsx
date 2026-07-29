@@ -416,39 +416,40 @@ export default function CoachPage() {
         .filter((msg) => msg.role === "user")
         .slice(-3)
         .reverse();
+    const hasActiveChat = messages.some((msg) => msg.role === "user");
 
     if (!isClient || !user) return <div className="min-h-screen flex items-center justify-center text-[#a1887f] dark:text-[#a19d9b] font-medium animate-pulse transition-colors">Memuat Chroniq AI...</div>;
 
     return (
-        <div className="flex min-h-[calc(100dvh-4.5rem)] w-full flex-col px-0 pt-1 sm:px-4">
+        <div className="flex h-[calc(100dvh-6rem)] min-h-0 w-full flex-col overflow-hidden px-0 pt-0 sm:h-[calc(100dvh-6.25rem)] sm:px-4">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                className={`mx-auto flex w-full max-w-6xl shrink-0 gap-3 px-4 sm:px-6 ${hasActiveChat ? "flex-row items-center justify-between py-1.5" : "flex-col py-3 sm:flex-row sm:items-center sm:justify-between"}`}
             >
-                <div className="flex items-center gap-4">
-                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#4f46e5] via-[#ff8a65] to-[#34d399] text-white shadow-inner sm:h-14 sm:w-14">
+                <div className={`flex min-w-0 items-center ${hasActiveChat ? "gap-2" : "gap-4"}`}>
+                    <div className={`relative flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-[#4f46e5] via-[#ff8a65] to-[#34d399] text-white shadow-inner ${hasActiveChat ? "h-9 w-9 rounded-xl" : "h-12 w-12 rounded-2xl sm:h-14 sm:w-14"}`}>
                         <div className="absolute inset-0 bg-white/20 blur-md rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-                        <Brain className="z-10 h-7 w-7 drop-shadow-md sm:h-8 sm:w-8" />
+                        <Brain className={`z-10 drop-shadow-md ${hasActiveChat ? "h-5 w-5" : "h-7 w-7 sm:h-8 sm:w-8"}`} />
                     </div>
                     <div className="min-w-0">
-                        <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <h1 className="text-2xl font-black tracking-tight text-[#1f2937] dark:text-[#e5edf8] sm:text-3xl">Chroniq AI Coach</h1>
-                            <span className="rounded-full border border-[#c7d2fe]/70 bg-[#eef2ff] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#4f46e5] dark:border-[#818cf8]/30 dark:bg-[#312e81]/35 dark:text-[#c7d2fe]">
+                        <div className={`flex min-w-0 flex-wrap items-center gap-2 ${hasActiveChat ? "mb-0" : "mb-1"}`}>
+                            <h1 className={`truncate font-black tracking-tight text-[#1f2937] dark:text-[#e5edf8] ${hasActiveChat ? "text-sm sm:text-base" : "text-2xl sm:text-3xl"}`}>Chroniq AI Coach</h1>
+                            <span className={`rounded-full border border-[#c7d2fe]/70 bg-[#eef2ff] font-black uppercase tracking-wide text-[#4f46e5] dark:border-[#818cf8]/30 dark:bg-[#312e81]/35 dark:text-[#c7d2fe] ${hasActiveChat ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"}`}>
                                 Context aware
                             </span>
                         </div>
-                        <p className="flex items-center gap-1.5 text-xs font-semibold leading-relaxed text-[#64748b] dark:text-[#94a3b8] sm:text-sm">
+                        <p className={`items-center gap-1.5 text-xs font-semibold leading-relaxed text-[#64748b] dark:text-[#94a3b8] sm:text-sm ${hasActiveChat ? "hidden" : "flex"}`}>
                             <Sparkles className="h-3.5 w-3.5 text-[#ff8a65]" /> Mengelola task, jadwal, checklist, dan plan belajar dari satu chat.
                         </p>
                     </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
-                    <div className="rounded-2xl border border-[#e2e8f0] bg-white/50 px-3 py-2 text-center backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
+                <div className={`gap-2 ${hasActiveChat ? "flex shrink-0 items-center" : "grid grid-cols-3 sm:flex sm:items-center"}`}>
+                    <div className={`rounded-2xl border border-[#e2e8f0] bg-white/50 text-center backdrop-blur-sm dark:border-white/10 dark:bg-white/5 ${hasActiveChat ? "hidden px-2.5 py-1.5 sm:block" : "px-3 py-2"}`}>
                         <div className="text-sm font-black text-[#1f2937] dark:text-[#e5edf8]">{activities.length}</div>
                         <div className="text-[10px] font-bold uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Tasks</div>
                     </div>
-                    <div className="rounded-2xl border border-[#e2e8f0] bg-white/50 px-3 py-2 text-center backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
+                    <div className={`rounded-2xl border border-[#e2e8f0] bg-white/50 text-center backdrop-blur-sm dark:border-white/10 dark:bg-white/5 ${hasActiveChat ? "hidden px-2.5 py-1.5 md:block" : "px-3 py-2"}`}>
                         <div className="text-sm font-black text-[#1f2937] dark:text-[#e5edf8]">{currentSchedule.filter(b => b.type === "activity").length}</div>
                         <div className="text-[10px] font-bold uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Today</div>
                     </div>
@@ -456,9 +457,10 @@ export default function CoachPage() {
                         type="button"
                         onClick={handleNewChat}
                         variant="outline"
-                        className="h-full min-h-12 rounded-2xl border-[#c7d2fe] bg-white/55 px-3 text-xs font-bold text-[#4f46e5] backdrop-blur-sm hover:bg-[#eef2ff] dark:border-[#818cf8]/30 dark:bg-white/5 dark:text-[#c7d2fe] dark:hover:bg-[#312e81]/35"
+                        className={`rounded-2xl border-[#c7d2fe] bg-white/55 text-xs font-bold text-[#4f46e5] backdrop-blur-sm hover:bg-[#eef2ff] dark:border-[#818cf8]/30 dark:bg-white/5 dark:text-[#c7d2fe] dark:hover:bg-[#312e81]/35 ${hasActiveChat ? "h-9 px-3" : "h-full min-h-12 px-3"}`}
                     >
-                        <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Chat baru
+                        <RotateCcw className={`${hasActiveChat ? "mr-0 h-3.5 w-3.5 sm:mr-1.5" : "mr-1.5 h-3.5 w-3.5"}`} />
+                        <span className={hasActiveChat ? "hidden sm:inline" : ""}>Chat baru</span>
                     </Button>
                 </div>
             </motion.div>
@@ -466,9 +468,9 @@ export default function CoachPage() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative flex flex-1 flex-col overflow-hidden"
+                className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-                <div className="relative z-10 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6 sm:py-7">
+                <div className={`relative z-10 min-h-0 flex-1 space-y-5 overflow-y-auto px-4 sm:px-6 ${hasActiveChat ? "py-3 sm:py-4" : "py-5 sm:py-7"}`}>
                     {messages.length <= 1 && (
                         <motion.div
                             initial={{ opacity: 0, y: 8 }}
@@ -547,7 +549,7 @@ export default function CoachPage() {
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="relative z-10 shrink-0 border-t border-[#e2e8f0]/80 bg-white/78 px-3 py-3 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0f172a]/78 sm:px-6 sm:py-4">
+                <div className="relative z-10 shrink-0 border-t border-[#e2e8f0]/80 bg-white/78 px-3 py-2.5 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0f172a]/78 sm:px-6 sm:py-3">
                     {recentUserPrompts.length > 0 && (
                         <div className="mx-auto mb-2 flex w-full max-w-4xl items-center gap-2 overflow-x-auto pb-1">
                             <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Riwayat aktif</span>
@@ -563,7 +565,7 @@ export default function CoachPage() {
                             ))}
                         </div>
                     )}
-                    <div className="mx-auto mb-2 flex w-full max-w-4xl gap-2 overflow-x-auto pb-1">
+                    <div className={`mx-auto mb-2 w-full max-w-4xl gap-2 overflow-x-auto pb-1 ${hasActiveChat ? "hidden sm:flex" : "flex"}`}>
                         {suggestionPrompts.slice(0, 3).map((item) => (
                             <button
                                 key={`mini-${item.title}`}
@@ -600,7 +602,7 @@ export default function CoachPage() {
                             )}
                         </Button>
                     </form>
-                    <div className="mt-2.5 flex items-center justify-center gap-1.5 text-center text-[10px] font-semibold text-[#64748b] transition-colors dark:text-[#94a3b8] sm:text-xs">
+                    <div className="mt-2 hidden items-center justify-center gap-1.5 text-center text-[10px] font-semibold text-[#64748b] transition-colors dark:text-[#94a3b8] sm:flex sm:text-xs">
                         <Code className="hidden h-3.5 w-3.5 text-[#818cf8] sm:block" /> Enter untuk kirim, Shift+Enter untuk baris baru. Chroniq AI dapat mengeksekusi perubahan jadwal.
                     </div>
                 </div>
