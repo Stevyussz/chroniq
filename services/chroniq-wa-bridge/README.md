@@ -24,6 +24,7 @@ BOT_DISPLAY_NAME=Chroniq AI
 CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
 ENABLE_CONFIRMATION_POLL=false
 ENABLE_CHRONIQ_AI_FEEDBACK=true
+ENABLE_RICH_LINK_PREVIEW=false
 MORNING_BRIEF_TIME=06:30
 NIGHT_REFLECTION_TIME=21:30
 ```
@@ -31,6 +32,7 @@ NIGHT_REFLECTION_TIME=21:30
 `CHRONIQ_APP_URL` membuat pesan WhatsApp membawa link "Buka Chroniq".
 `ENABLE_CONFIRMATION_POLL=true` mengirim poll konfirmasi setelah reminder, tapi default yang disarankan adalah `false` agar quick action teks/angka menjadi sumber aksi utama.
 `ENABLE_CHRONIQ_AI_FEEDBACK=true` membuat bridge meminta feedback singkat dari endpoint Chroniq AI saat user membalas WA; kalau gagal, bridge otomatis pakai feedback lokal.
+`ENABLE_RICH_LINK_PREVIEW=false` menjaga pesan dikirim sebagai teks biasa agar delivery lebih stabil. Aktifkan hanya kalau kamu benar-benar ingin preview/link card.
 
 ## Env Chroniq Next.js
 

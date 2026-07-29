@@ -31,6 +31,7 @@ const ENABLE_CONFIRMATION_POLL = process.env.ENABLE_CONFIRMATION_POLL === 'true'
 const MORNING_BRIEF_TIME = process.env.MORNING_BRIEF_TIME || '06:30';
 const NIGHT_REFLECTION_TIME = process.env.NIGHT_REFLECTION_TIME || '21:30';
 const ENABLE_CHRONIQ_AI_FEEDBACK = process.env.ENABLE_CHRONIQ_AI_FEEDBACK !== 'false';
+const ENABLE_RICH_LINK_PREVIEW = process.env.ENABLE_RICH_LINK_PREVIEW === 'true';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -430,21 +431,26 @@ async function sendText(phone, text) {
   const jid = toJid(phone);
   if (!jid) throw new Error('Nomor WhatsApp tidak valid.');
 
-  await sock.sendMessage(jid, {
-    text,
-    contextInfo: CHRONIQ_APP_URL
-      ? {
-          externalAdReply: {
-            title: BOT_DISPLAY_NAME,
-            body: 'Smart schedule reminder',
-            mediaType: 1,
-            sourceUrl: CHRONIQ_APP_URL,
-            showAdAttribution: false,
-            renderLargerThumbnail: false
-          }
-        }
-      : undefined
-  });
+  const payload = { text };
+
+  // Keep production delivery close to a normal manually typed WhatsApp message.
+  // Rich previews/externalAdReply are prettier, but unofficial WA clients can
+  // occasionally leave those messages stuck at one checkmark.
+  if (ENABLE_RICH_LINK_PREVIEW && CHRONIQ_APP_URL) {
+    payload.contextInfo = {
+      externalAdReply: {
+        title: BOT_DISPLAY_NAME,
+        body: 'Smart schedule reminder',
+        mediaType: 1,
+        sourceUrl: CHRONIQ_APP_URL,
+        showAdAttribution: false,
+        renderLargerThumbnail: false
+      }
+    };
+  }
+
+  await sock.sendPresenceUpdate('available', jid).catch(() => {});
+  await sock.sendMessage(jid, payload);
 }
 
 async function sendConfirmationPoll(phone, taskName) {

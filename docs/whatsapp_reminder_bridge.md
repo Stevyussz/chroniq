@@ -51,6 +51,7 @@ BOT_DISPLAY_NAME=Chroniq AI
 CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
 ENABLE_CONFIRMATION_POLL=false
 ENABLE_CHRONIQ_AI_FEEDBACK=true
+ENABLE_RICH_LINK_PREVIEW=false
 MORNING_BRIEF_TIME=06:30
 NIGHT_REFLECTION_TIME=21:30
 ```
@@ -60,6 +61,7 @@ Setelah bridge hidup, scan QR di terminal panel memakai nomor WhatsApp khusus Ch
 `CHRONIQ_APP_URL` dipakai untuk menambahkan link CTA "Buka Chroniq" di pesan WhatsApp.
 `ENABLE_CONFIRMATION_POLL=true` akan mengirim poll konfirmasi setelah reminder, tetapi default yang disarankan adalah `false` agar quick reply lewat angka/teks menjadi sumber aksi utama dan tidak bergantung pada voting poll.
 `ENABLE_CHRONIQ_AI_FEEDBACK=true` membuat bridge meminta feedback singkat dari Chroniq AI setelah user membalas. Jika endpoint AI tidak tersedia, bridge otomatis memakai feedback lokal.
+`ENABLE_RICH_LINK_PREVIEW=false` menjaga pesan reminder memakai payload teks biasa seperti chat manual. Ini lebih stabil jika pesan rich preview dari Baileys tertahan di centang satu.
 
 ## Env Chroniq / Vercel
 
