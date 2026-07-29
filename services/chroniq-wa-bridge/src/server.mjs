@@ -30,6 +30,7 @@ const CHRONIQ_APP_URL = (process.env.CHRONIQ_APP_URL || '').replace(/\/$/, '');
 const ENABLE_CONFIRMATION_POLL = process.env.ENABLE_CONFIRMATION_POLL === 'true';
 const MORNING_BRIEF_TIME = process.env.MORNING_BRIEF_TIME || '06:30';
 const NIGHT_REFLECTION_TIME = process.env.NIGHT_REFLECTION_TIME || '21:30';
+const ENABLE_CHRONIQ_AI_FEEDBACK = process.env.ENABLE_CHRONIQ_AI_FEEDBACK !== 'false';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -315,6 +316,112 @@ function nightReflectionMessage() {
   ].join('\n');
 }
 
+function commandFeedbackFallback(intent, userRecord, commandText) {
+  const taskName = userRecord.lastReminder?.taskName;
+  const openUrl = dashboardUrl();
+
+  if (intent === 'done') {
+    return [
+      '*Konfirmasi diterima.*',
+      '',
+      taskName ? `Aku catat *${taskName}* sebagai selesai.` : 'Aku catat tugas terakhir sebagai selesai.',
+      'Saat dashboard Chroniq aktif, statusnya akan disinkronkan otomatis.',
+      '',
+      'Nice. Satu langkah selesai, ritme kamu tetap jalan.',
+      openUrl ? `\nBuka Chroniq: ${openUrl}` : ''
+    ].filter(Boolean).join('\n');
+  }
+
+  if (intent === 'skip') {
+    return [
+      '*Skip diterima.*',
+      '',
+      taskName ? `Aku catat *${taskName}* sebagai dilewati dulu.` : 'Aku catat tugas terakhir sebagai dilewati dulu.',
+      'Chroniq akan menyimpan sinyal ini supaya jadwal berikutnya tetap realistis.',
+      openUrl ? `\nBuka Chroniq: ${openUrl}` : ''
+    ].filter(Boolean).join('\n');
+  }
+
+  if (intent === 'snooze') {
+    return [
+      '*Tunda diterima.*',
+      '',
+      taskName ? `Aku catat penundaan untuk *${taskName}*.` : 'Aku catat permintaan tunda kamu.',
+      `Detail balasan: "${commandText}"`,
+      'Saat dashboard Chroniq aktif, perubahan ini akan disinkronkan.',
+      openUrl ? `\nBuka Chroniq: ${openUrl}` : ''
+    ].filter(Boolean).join('\n');
+  }
+
+  if (intent === 'reflection') {
+    return [
+      '*Refleksi diterima.*',
+      '',
+      `Aku simpan sinyal energi kamu: "${commandText}".`,
+      'Ini akan membantu Chroniq memahami ritme harianmu.'
+    ].join('\n');
+  }
+
+  return [
+    '*Aku terima balasanmu.*',
+    '',
+    'Untuk aksi cepat, balas:',
+    '1 / done = selesai',
+    '2 / tunda 15 = tunda',
+    '3 / skip = lewati'
+  ].join('\n');
+}
+
+async function chroniqAiFeedback(intent, userRecord, commandText) {
+  if (!ENABLE_CHRONIQ_AI_FEEDBACK || !CHRONIQ_APP_URL) {
+    return commandFeedbackFallback(intent, userRecord, commandText);
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 7000);
+
+  try {
+    const today = localParts(new Date(), userRecord.timezone || DEFAULT_TIMEZONE).date;
+    const response = await fetch(`${CHRONIQ_APP_URL}/api/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        messages: [{
+          role: 'user',
+          content: [
+            `User membalas WhatsApp reminder Chroniq dengan intent "${intent}".`,
+            `Balasan user: "${commandText}".`,
+            userRecord.lastReminder?.taskName ? `Task terkait: ${userRecord.lastReminder.taskName}.` : '',
+            'Buat feedback WhatsApp super singkat, hangat, dan jelas dalam Bahasa Indonesia.',
+            'Maksimal 4 baris. Jangan sebut provider AI. Jangan pakai command JSON.'
+          ].filter(Boolean).join('\n')
+        }],
+        context: {
+          level: 1,
+          exp: 0,
+          currentStreak: 0,
+          burnoutRisk: 0,
+          pendingActivitiesCount: userRecord.activities?.length || 0,
+          upcomingTasksCount: scheduleBlocksForToday(userRecord, today).length,
+          activeTasks: (userRecord.activities || []).slice(0, 20),
+          todayTimeline: scheduleBlocksForToday(userRecord, today).slice(0, 12),
+          energyZones: 'WhatsApp reminder context'
+        }
+      })
+    });
+
+    const data = await response.json();
+    const reply = String(data?.reply || '').replace(/```json[\s\S]*?```/g, '').trim();
+    return reply || commandFeedbackFallback(intent, userRecord, commandText);
+  } catch (error) {
+    logger.warn({ error: error.message }, 'Chroniq AI feedback failed; using fallback feedback.');
+    return commandFeedbackFallback(intent, userRecord, commandText);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function sendText(phone, text) {
   if (!sock || connectionState !== 'connected') {
     throw new Error('WhatsApp belum connected. Scan QR bridge dulu.');
@@ -396,7 +503,10 @@ async function handleIncomingMessages(event) {
     if (!userRecord) continue;
 
     const lower = text.toLowerCase().trim();
-    const intent = lower === '1' || lower.includes('selesai') || lower.startsWith('done')
+    const isReflectionReply = userRecord.lastPrompt?.type === 'night-reflection' && ['1', '2', '3'].includes(lower);
+    const intent = isReflectionReply
+      ? 'reflection'
+      : lower === '1' || lower.includes('selesai') || lower.startsWith('done')
       ? 'done'
       : lower === '3' || lower.startsWith('skip')
         ? 'skip'
@@ -420,26 +530,25 @@ async function handleIncomingMessages(event) {
 
     if (intent === 'done') {
       await sock.sendMessage(message.key.remoteJid, {
-        text: [
-          '*Done dicatat.*',
-          '',
-          'Nice. Aku simpan respons kamu di bridge Chroniq AI.',
-          dashboardUrl() ? `Buka dashboard: ${dashboardUrl()}` : ''
-        ].filter(Boolean).join('\n')
+        text: await chroniqAiFeedback(intent, userRecord, text)
       });
     } else if (intent === 'skip') {
       await sock.sendMessage(message.key.remoteJid, {
-        text: '*Skip dicatat.*\n\nNanti Chroniq bisa bantu re-optimize jadwalmu supaya tetap realistis.'
+        text: await chroniqAiFeedback(intent, userRecord, text)
       });
     } else if (intent === 'snooze') {
       await sock.sendMessage(message.key.remoteJid, {
-        text: '*Tunda dicatat.*\n\nAku simpan permintaan tunda kamu. Untuk MVP, buka Chroniq untuk re-optimize jadwal terbaru.'
+        text: await chroniqAiFeedback(intent, userRecord, text)
       });
     } else if (intent === 'share_plan') {
       await sock.sendMessage(message.key.remoteJid, { text: planSummaryMessage(userRecord) });
     } else if (intent === 'reflection') {
       await sock.sendMessage(message.key.remoteJid, {
-        text: '*Refleksi dicatat.*\n\nSinyal energi kamu sudah masuk ke bridge Chroniq AI.'
+        text: await chroniqAiFeedback(intent, userRecord, text)
+      });
+    } else {
+      await sock.sendMessage(message.key.remoteJid, {
+        text: await chroniqAiFeedback(intent, userRecord, text)
       });
     }
   }
@@ -542,6 +651,11 @@ async function reminderTick() {
       const reminderKey = `night-reflection:${now.date}`;
       if (!userRecord.sentReminders?.[reminderKey]) {
         try {
+          userRecord.lastPrompt = {
+            type: 'night-reflection',
+            date: now.date,
+            sentAt: new Date().toISOString()
+          };
           await sendText(userRecord.phone, nightReflectionMessage());
           userRecord.sentReminders = { ...(userRecord.sentReminders || {}), [reminderKey]: new Date().toISOString() };
           changed = true;

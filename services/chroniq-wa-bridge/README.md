@@ -23,12 +23,14 @@ REMINDER_CHECK_INTERVAL_MS=30000
 BOT_DISPLAY_NAME=Chroniq AI
 CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
 ENABLE_CONFIRMATION_POLL=false
+ENABLE_CHRONIQ_AI_FEEDBACK=true
 MORNING_BRIEF_TIME=06:30
 NIGHT_REFLECTION_TIME=21:30
 ```
 
 `CHRONIQ_APP_URL` membuat pesan WhatsApp membawa link "Buka Chroniq".
 `ENABLE_CONFIRMATION_POLL=true` mengirim poll konfirmasi setelah reminder, tapi default yang disarankan adalah `false` agar quick action teks/angka menjadi sumber aksi utama.
+`ENABLE_CHRONIQ_AI_FEEDBACK=true` membuat bridge meminta feedback singkat dari endpoint Chroniq AI saat user membalas WA; kalau gagal, bridge otomatis pakai feedback lokal.
 
 ## Env Chroniq Next.js
 
