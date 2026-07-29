@@ -26,6 +26,8 @@ const API_KEY = process.env.BRIDGE_API_KEY || '';
 const DEFAULT_TIMEZONE = process.env.DEFAULT_TIMEZONE || 'Asia/Jakarta';
 const BOT_DISPLAY_NAME = process.env.BOT_DISPLAY_NAME || 'Chroniq AI';
 const CHECK_INTERVAL_MS = Number(process.env.REMINDER_CHECK_INTERVAL_MS || 30_000);
+const CHRONIQ_APP_URL = (process.env.CHRONIQ_APP_URL || '').replace(/\/$/, '');
+const ENABLE_CONFIRMATION_POLL = process.env.ENABLE_CONFIRMATION_POLL !== 'false';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -120,6 +122,10 @@ function getMessageText(message) {
     payload?.extendedTextMessage?.text ||
     payload?.imageMessage?.caption ||
     payload?.videoMessage?.caption ||
+    payload?.buttonsResponseMessage?.selectedDisplayText ||
+    payload?.templateButtonReplyMessage?.selectedDisplayText ||
+    payload?.listResponseMessage?.title ||
+    payload?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson ||
     ''
   ).trim();
 }
@@ -131,23 +137,83 @@ function findActivityName(userRecord, block) {
   return activity?.name || 'Tugas Chroniq';
 }
 
+function findActivity(userRecord, block) {
+  return userRecord.activities?.find((item) => item.id === block.activity_id);
+}
+
+function dashboardUrl() {
+  return CHRONIQ_APP_URL ? `${CHRONIQ_APP_URL}/` : '';
+}
+
+function priorityLabel(priority) {
+  const value = Number(priority || 3);
+  if (value >= 5) return 'Prioritas utama';
+  if (value >= 4) return 'Prioritas tinggi';
+  if (value <= 2) return 'Santai';
+  return 'Prioritas sedang';
+}
+
+function formatDuration(minutes) {
+  const value = Number(minutes || 0);
+  if (!value) return '';
+  if (value < 60) return `${value} menit`;
+  const hours = Math.floor(value / 60);
+  const rest = value % 60;
+  return rest ? `${hours} jam ${rest} menit` : `${hours} jam`;
+}
+
 function reminderMessage(userRecord, block, minutesUntil) {
   const taskName = findActivityName(userRecord, block);
-  const activity = userRecord.activities?.find((item) => item.id === block.activity_id);
+  const activity = findActivity(userRecord, block);
   const checklist = activity?.checklists?.filter((item) => !item.is_completed).slice(0, 3) || [];
   const checklistText = checklist.length
-    ? `\n\nLangkah kecil:\n${checklist.map((item, index) => `${index + 1}. ${item.title}`).join('\n')}`
+    ? `\n\n*Langkah kecil*\n${checklist.map((item, index) => `${index + 1}. ${item.title}`).join('\n')}`
     : '';
+  const durationText = formatDuration(activity?.target_duration);
+  const openUrl = dashboardUrl();
+  const focusLine = activity?.category?.toLowerCase().includes('belajar')
+    ? 'Mulai dari bagian paling kecil dulu. Targetnya bukan sempurna, targetnya mulai.'
+    : 'Ambil 1 langkah paling jelas dulu, lalu biarkan momentum jalan.';
 
   return [
     `*${BOT_DISPLAY_NAME} Reminder*`,
+    '━━━━━━━━━━━━━━',
     '',
-    `${minutesUntil <= 0 ? 'Sekarang waktunya' : `${minutesUntil} menit lagi`}: *${taskName}*`,
+    `${minutesUntil <= 0 ? 'Mulai sekarang' : `${minutesUntil} menit lagi`}`,
+    `*${taskName}*`,
+    '',
     `Jam: ${block.planned_start}-${block.planned_end}`,
-    activity?.category ? `Kategori: ${activity.category}` : '',
+    durationText ? `Durasi: ${durationText}` : '',
+    activity?.priority ? `Level: ${priorityLabel(activity.priority)}` : '',
+    activity?.category ? `Mode: ${activity.category}` : '',
     checklistText,
     '',
-    'Balas *done*, *tunda 30*, atau *skip* untuk mencatat responsmu.'
+    `_${focusLine}_`,
+    '',
+    '*Konfirmasi cepat*',
+    '1. Selesai',
+    '2. Tunda 15 menit',
+    '3. Skip dulu',
+    openUrl ? `\nBuka Chroniq: ${openUrl}` : '',
+    '',
+    'Balas angka, *done*, *tunda 15*, atau *skip*.'
+  ].filter(Boolean).join('\n');
+}
+
+function testMessage() {
+  const openUrl = dashboardUrl();
+  return [
+    `*${BOT_DISPLAY_NAME} aktif*`,
+    '━━━━━━━━━━━━━━',
+    '',
+    'Reminder WhatsApp kamu sudah terhubung.',
+    'Nanti aku akan mengingatkan jadwal penting dari Chroniq dengan format yang lebih rapi dan bisa dikonfirmasi cepat.',
+    '',
+    '*Quick action yang bisa kamu balas:*',
+    '1 / done = tandai selesai',
+    '2 / tunda 15 = minta tunda',
+    '3 / skip = lewati dulu',
+    openUrl ? `\nBuka Chroniq: ${openUrl}` : ''
   ].filter(Boolean).join('\n');
 }
 
@@ -159,7 +225,47 @@ async function sendText(phone, text) {
   const jid = toJid(phone);
   if (!jid) throw new Error('Nomor WhatsApp tidak valid.');
 
-  await sock.sendMessage(jid, { text });
+  await sock.sendMessage(jid, {
+    text,
+    contextInfo: CHRONIQ_APP_URL
+      ? {
+          externalAdReply: {
+            title: BOT_DISPLAY_NAME,
+            body: 'Smart schedule reminder',
+            mediaType: 1,
+            sourceUrl: CHRONIQ_APP_URL,
+            showAdAttribution: false,
+            renderLargerThumbnail: false
+          }
+        }
+      : undefined
+  });
+}
+
+async function sendConfirmationPoll(phone, taskName) {
+  if (!ENABLE_CONFIRMATION_POLL) return;
+
+  const jid = toJid(phone);
+  if (!jid) return;
+
+  await sock.sendMessage(jid, {
+    poll: {
+      name: `Konfirmasi: ${taskName}`,
+      values: ['Selesai', 'Tunda 15 menit', 'Skip dulu'],
+      selectableCount: 1
+    }
+  });
+}
+
+async function sendReminder(phone, userRecord, block, minutesUntil) {
+  const taskName = findActivityName(userRecord, block);
+  await sendText(phone, reminderMessage(userRecord, block, minutesUntil));
+
+  try {
+    await sendConfirmationPoll(phone, taskName);
+  } catch (error) {
+    logger.warn({ error: error.message }, 'Confirmation poll failed; text quick actions are still available.');
+  }
 }
 
 async function appendCommand(command) {
@@ -182,12 +288,12 @@ async function handleIncomingMessages(event) {
     const userRecord = Object.values(store.users || {}).find((item) => normalizePhone(item.phone) === normalizePhone(from));
     if (!userRecord) continue;
 
-    const lower = text.toLowerCase();
-    const intent = lower.startsWith('done') || lower.startsWith('selesai')
+    const lower = text.toLowerCase().trim();
+    const intent = lower === '1' || lower.includes('selesai') || lower.startsWith('done')
       ? 'done'
-      : lower.startsWith('skip')
+      : lower === '3' || lower.startsWith('skip')
         ? 'skip'
-        : lower.startsWith('tunda') || lower.startsWith('snooze')
+        : lower === '2' || lower.startsWith('tunda') || lower.startsWith('snooze')
           ? 'snooze'
           : 'chat';
 
@@ -201,11 +307,22 @@ async function handleIncomingMessages(event) {
     });
 
     if (intent === 'done') {
-      await sock.sendMessage(message.key.remoteJid, { text: 'Mantap. Aku catat respons *done* kamu di bridge Chroniq AI.' });
+      await sock.sendMessage(message.key.remoteJid, {
+        text: [
+          '*Done dicatat.*',
+          '',
+          'Nice. Aku simpan respons kamu di bridge Chroniq AI.',
+          dashboardUrl() ? `Buka dashboard: ${dashboardUrl()}` : ''
+        ].filter(Boolean).join('\n')
+      });
     } else if (intent === 'skip') {
-      await sock.sendMessage(message.key.remoteJid, { text: 'Oke, aku catat *skip*. Nanti Chroniq bisa bantu re-optimize lagi.' });
+      await sock.sendMessage(message.key.remoteJid, {
+        text: '*Skip dicatat.*\n\nNanti Chroniq bisa bantu re-optimize jadwalmu supaya tetap realistis.'
+      });
     } else if (intent === 'snooze') {
-      await sock.sendMessage(message.key.remoteJid, { text: 'Siap, aku catat permintaan tunda kamu.' });
+      await sock.sendMessage(message.key.remoteJid, {
+        text: '*Tunda dicatat.*\n\nAku simpan permintaan tunda kamu. Untuk MVP, buka Chroniq untuk re-optimize jadwal terbaru.'
+      });
     }
   }
 }
@@ -278,7 +395,7 @@ async function reminderTick() {
       if (!shouldSend || userRecord.sentReminders?.[reminderKey]) continue;
 
       try {
-        await sendText(userRecord.phone, reminderMessage(userRecord, block, minutesUntil));
+        await sendReminder(userRecord.phone, userRecord, block, minutesUntil);
         userRecord.sentReminders = { ...(userRecord.sentReminders || {}), [reminderKey]: new Date().toISOString() };
         changed = true;
         logger.info({ userId: userRecord.userId, blockId: block.id }, 'Reminder sent.');
@@ -362,7 +479,12 @@ async function createServer() {
     const phone = normalizePhone(req.body?.phone);
     if (!phone) return res.status(400).json({ ok: false, error: 'Nomor WhatsApp tidak valid.' });
 
-    await sendText(phone, `*${BOT_DISPLAY_NAME} aktif.*\n\nReminder WhatsApp kamu sudah terhubung. Nanti aku akan mengingatkan jadwal penting dari Chroniq.`);
+    await sendText(phone, testMessage());
+    try {
+      await sendConfirmationPoll(phone, 'Test reminder Chroniq');
+    } catch (error) {
+      logger.warn({ error: error.message }, 'Test confirmation poll failed.');
+    }
     res.json({ ok: true, sentAt: new Date().toISOString() });
   });
 

@@ -40,9 +40,14 @@ BRIDGE_API_KEY=buat_key_panjang_random
 DEFAULT_TIMEZONE=Asia/Jakarta
 REMINDER_CHECK_INTERVAL_MS=30000
 BOT_DISPLAY_NAME=Chroniq AI
+CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
+ENABLE_CONFIRMATION_POLL=true
 ```
 
 Setelah bridge hidup, scan QR di terminal panel memakai nomor WhatsApp khusus Chroniq AI.
+
+`CHRONIQ_APP_URL` dipakai untuk menambahkan link CTA "Buka Chroniq" di pesan WhatsApp.
+`ENABLE_CONFIRMATION_POLL=true` akan mengirim poll konfirmasi setelah reminder, sehingga user bisa tap pilihan Selesai/Tunda/Skip. Kalau poll tidak stabil di device tertentu, set ke `false`; quick reply lewat angka/teks tetap jalan.
 
 ## Env Chroniq / Vercel
 

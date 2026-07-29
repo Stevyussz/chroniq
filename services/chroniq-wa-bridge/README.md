@@ -13,6 +13,21 @@ npm start
 
 Scan QR yang muncul di terminal memakai nomor WhatsApp khusus Chroniq AI.
 
+## Env Bridge
+
+```bash
+PORT=8787
+BRIDGE_API_KEY=change-this-long-random-key
+DEFAULT_TIMEZONE=Asia/Jakarta
+REMINDER_CHECK_INTERVAL_MS=30000
+BOT_DISPLAY_NAME=Chroniq AI
+CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
+ENABLE_CONFIRMATION_POLL=true
+```
+
+`CHRONIQ_APP_URL` membuat pesan WhatsApp membawa link "Buka Chroniq".
+`ENABLE_CONFIRMATION_POLL=true` mengirim poll konfirmasi setelah reminder. Set ke `false` kalau ingin satu pesan teks saja.
+
 ## Env Chroniq Next.js
 
 Tambahkan di Vercel/local Next.js:
