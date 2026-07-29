@@ -40,6 +40,13 @@ interface PoeState {
     // Chat history is persisted so users can resume conversations.
     // Losing chat context breaks the "AI coach" mental model entirely.
     chatHistory: { id: string; role: "user" | "model"; content: string }[];
+
+    // Pomodoro Timer Mode
+    timerMode: 'deepwork' | 'pomodoro';
+    pomodoroCount: number;       // sesi pomodoro selesai hari ini
+    pomodoroPhase: 'work' | 'break'; // fase saat ini: kerja atau istirahat
+    pomodoroLastReset: string | null; // YYYY-MM-DD to reset count per day
+
     // Actions
     setUser: (user: User) => void;
     addFixedBlock: (block: FixedBlock) => void;
@@ -84,6 +91,11 @@ interface PoeState {
     addChatMessage: (msg: { id: string; role: "user" | "model"; content: string }) => void;
     clearChatHistory: () => void;
 
+    // Pomodoro Actions
+    setTimerMode: (mode: 'deepwork' | 'pomodoro') => void;
+    incrementPomodoroCount: () => void;
+    setPomodoroPhase: (phase: 'work' | 'break') => void;
+
     resetTimeline: () => void;
     resetAll: () => void;
 }
@@ -119,6 +131,11 @@ export const usePoeStore = create<PoeState>()(
             lastActiveDate: null,
 
             chatHistory: [],
+
+            timerMode: 'deepwork',
+            pomodoroCount: 0,
+            pomodoroPhase: 'work',
+            pomodoroLastReset: null,
 
             resetTimeline: () => set({
                 activities: [],
@@ -271,6 +288,17 @@ export const usePoeStore = create<PoeState>()(
                 chatHistory: [...state.chatHistory.slice(-99), msg] // keep last 100 messages
             })),
             clearChatHistory: () => set({ chatHistory: [] }),
+
+            setTimerMode: (mode) => set({ timerMode: mode }),
+            setPomodoroPhase: (phase) => set({ pomodoroPhase: phase }),
+            incrementPomodoroCount: () => set((state) => {
+                const today = new Date().toISOString().split('T')[0];
+                // Reset counter if it's a new day
+                if (state.pomodoroLastReset !== today) {
+                    return { pomodoroCount: 1, pomodoroLastReset: today };
+                }
+                return { pomodoroCount: state.pomodoroCount + 1 };
+            }),
 
             resetAll: () => set({
                 user: null,

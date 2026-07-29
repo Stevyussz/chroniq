@@ -15,7 +15,11 @@ export function useExecutionTracker() {
         addExp,
         updateStreak,
         isZenModeActive,
-        setZenMode
+        setZenMode,
+        timerMode,
+        pomodoroPhase,
+        setPomodoroPhase,
+        incrementPomodoroCount,
     } = usePoeStore();
 
     // Lofi Radio State
@@ -77,23 +81,48 @@ export function useExecutionTracker() {
                 setActiveTimer(totalElapsed);
 
                 // Check for completion target
-                const state = usePoeStore.getState();
-                const activeBlock = state.currentSchedule.find((b) => b.id === activeBlockId);
-                if (activeBlock) {
-                    let targetMins = 30; // default
-                    if (activeBlock.type === "activity") {
-                        const act = state.activities.find((a) => a.id === activeBlock.activity_id);
-                        if (act) targetMins = act.target_duration;
-                    } else if (activeBlock.type === "break") targetMins = 15;
+                // === POMODORO MODE LOGIC ===
+                if (timerMode === 'pomodoro') {
+                    const POMODORO_WORK_SECS = 25 * 60;
+                    const POMODORO_BREAK_SECS = 5 * 60;
 
-                    const targetSecs = targetMins * 60;
-                    // Only fire the chime once (when totalElapsed crosses the threshold)
-                    if (totalElapsed >= targetSecs && totalElapsed - 1 < targetSecs) {
+                    if (pomodoroPhase === 'work' && totalElapsed >= POMODORO_WORK_SECS && totalElapsed - 1 < POMODORO_WORK_SECS) {
+                        // Work phase complete!
                         playZenChime();
+                        incrementPomodoroCount();
+                        setPomodoroPhase('break');
                         sendBrowserNotification(
-                            "Waktu Habis!",
-                            `Durasi target untuk blok eksekusi ini telah tercapai. Waktunya bernapas!`
+                            "🍅 Pomodoro Selesai!",
+                            "Kerja keras 25 menit! Sekarang istirahat 5 menit — jangan dipaksakan."
                         );
+                    } else if (pomodoroPhase === 'break' && totalElapsed >= POMODORO_BREAK_SECS && totalElapsed - 1 < POMODORO_BREAK_SECS) {
+                        // Break phase complete!
+                        playZenChime();
+                        setPomodoroPhase('work');
+                        sendBrowserNotification(
+                            "🔔 Siap Pomodoro Berikutnya?",
+                            "Waktu istirahat habis. Tekan Eksekusi untuk mulai sesi Pomodoro baru!"
+                        );
+                    }
+                } else {
+                    // === DEEP WORK MODE LOGIC (original) ===
+                    const state = usePoeStore.getState();
+                    const activeBlock = state.currentSchedule.find((b) => b.id === activeBlockId);
+                    if (activeBlock) {
+                        let targetMins = 30;
+                        if (activeBlock.type === "activity") {
+                            const act = state.activities.find((a) => a.id === activeBlock.activity_id);
+                            if (act) targetMins = act.target_duration;
+                        } else if (activeBlock.type === "break") targetMins = 15;
+
+                        const targetSecs = targetMins * 60;
+                        if (totalElapsed >= targetSecs && totalElapsed - 1 < targetSecs) {
+                            playZenChime();
+                            sendBrowserNotification(
+                                "Waktu Habis!",
+                                `Durasi target untuk blok eksekusi ini telah tercapai. Waktunya bernapas!`
+                            );
+                        }
                     }
                 }
             }, 1000);

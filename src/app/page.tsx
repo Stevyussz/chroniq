@@ -23,6 +23,7 @@ import { TimelineView } from "@/components/dashboard/TimelineView";
 import { GoogleCalendarSync } from "@/components/dashboard/GoogleCalendarSync";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { LongRangePlanPanel } from "@/components/dashboard/LongRangePlanPanel";
+import { DailyProgressRing } from "@/components/dashboard/DailyProgressRing";
 
 // Custom Hooks for Modular Logic
 import { useExecutionTracker } from "@/hooks/useExecutionTracker";
@@ -30,7 +31,7 @@ import { useScheduleManager } from "@/hooks/useScheduleManager";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, currentStreak, longestStreak, resetTimeline, resetAll } = usePoeStore();
+  const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, currentStreak, longestStreak, resetTimeline, resetAll, timerMode, pomodoroCount } = usePoeStore();
   const [isClient, setIsClient] = useState(false);
   const { width, height } = useWindowSize();
 
@@ -143,6 +144,14 @@ export default function Dashboard() {
           isReoptimizing={isReoptimizing || isPushingToGcal}
           handleReoptimize={handleReoptimize}
           handleResetTimeline={resetTimeline}
+        />
+
+        {/* Daily Progress Ring + Pomodoro Counter */}
+        <DailyProgressRing
+          currentSchedule={currentSchedule}
+          executionLogs={executionLogs}
+          pomodoroCount={pomodoroCount}
+          timerMode={timerMode}
         />
 
         {/* Burnout Warning Module */}
