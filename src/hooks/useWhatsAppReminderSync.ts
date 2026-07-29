@@ -153,7 +153,7 @@ export function useWhatsAppReminderSync() {
     ]);
 
     useEffect(() => {
-        if (!user || !whatsappReminderEnabled || !whatsappPhone.trim()) return;
+        if (!user) return;
 
         try {
             const saved = JSON.parse(localStorage.getItem(PROCESSED_COMMANDS_KEY) || "[]") as string[];
@@ -339,7 +339,5 @@ export function useWhatsAppReminderSync() {
         updateActivity,
         updateStreak,
         user,
-        whatsappPhone,
-        whatsappReminderEnabled,
     ]);
 }
