@@ -27,7 +27,9 @@ const DEFAULT_TIMEZONE = process.env.DEFAULT_TIMEZONE || 'Asia/Jakarta';
 const BOT_DISPLAY_NAME = process.env.BOT_DISPLAY_NAME || 'Chroniq AI';
 const CHECK_INTERVAL_MS = Number(process.env.REMINDER_CHECK_INTERVAL_MS || 30_000);
 const CHRONIQ_APP_URL = (process.env.CHRONIQ_APP_URL || '').replace(/\/$/, '');
-const ENABLE_CONFIRMATION_POLL = process.env.ENABLE_CONFIRMATION_POLL !== 'false';
+const ENABLE_CONFIRMATION_POLL = process.env.ENABLE_CONFIRMATION_POLL === 'true';
+const MORNING_BRIEF_TIME = process.env.MORNING_BRIEF_TIME || '06:30';
+const NIGHT_REFLECTION_TIME = process.env.NIGHT_REFLECTION_TIME || '21:30';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -137,6 +139,13 @@ function findActivityName(userRecord, block) {
   return activity?.name || 'Tugas Chroniq';
 }
 
+function blockDuration(block) {
+  const start = timeToMinutes(block?.planned_start);
+  const end = timeToMinutes(block?.planned_end);
+  if (start === null || end === null) return 0;
+  return Math.max(0, end - start);
+}
+
 function findActivity(userRecord, block) {
   return userRecord.activities?.find((item) => item.id === block.activity_id);
 }
@@ -160,6 +169,21 @@ function formatDuration(minutes) {
   const hours = Math.floor(value / 60);
   const rest = value % 60;
   return rest ? `${hours} jam ${rest} menit` : `${hours} jam`;
+}
+
+function reminderOffsets(userRecord, block) {
+  const activity = findActivity(userRecord, block);
+  const base = Math.min(120, Math.max(1, Number(userRecord.leadMinutes || 15)));
+  const category = String(activity?.category || '').toLowerCase();
+  const priority = Number(activity?.priority || 3);
+  const duration = Number(activity?.target_duration || blockDuration(block));
+  const offsets = new Set([base]);
+
+  if (priority >= 4) offsets.add(30);
+  if (priority >= 5 || category.includes('belajar') || category.includes('analitis')) offsets.add(10);
+  if (duration >= 90) offsets.add(60);
+
+  return [...offsets].filter((value) => value > 0).sort((a, b) => b - a).slice(0, 3);
 }
 
 function reminderMessage(userRecord, block, minutesUntil) {
@@ -217,6 +241,80 @@ function testMessage() {
   ].filter(Boolean).join('\n');
 }
 
+function scheduleBlocksForToday(userRecord, date) {
+  return (userRecord.schedule || [])
+    .filter((block) => block.date === date && block.type === 'activity')
+    .sort((a, b) => String(a.planned_start).localeCompare(String(b.planned_start)));
+}
+
+function planSummaryMessage(userRecord, date = localParts(new Date(), userRecord.timezone || DEFAULT_TIMEZONE).date) {
+  const blocks = scheduleBlocksForToday(userRecord, date);
+  const openUrl = dashboardUrl();
+
+  if (!blocks.length) {
+    return [
+      `*${BOT_DISPLAY_NAME} Plan*`,
+      '━━━━━━━━━━━━━━',
+      '',
+      'Belum ada jadwal aktif untuk hari ini.',
+      openUrl ? `Buka Chroniq: ${openUrl}` : ''
+    ].filter(Boolean).join('\n');
+  }
+
+  const topPriority = [...blocks]
+    .map((block) => ({ block, activity: findActivity(userRecord, block) }))
+    .sort((a, b) => Number(b.activity?.priority || 0) - Number(a.activity?.priority || 0))[0];
+
+  return [
+    `*${BOT_DISPLAY_NAME} Plan Hari Ini*`,
+    '━━━━━━━━━━━━━━',
+    '',
+    `Total: ${blocks.length} fokus terjadwal`,
+    topPriority ? `Fokus utama: *${findActivityName(userRecord, topPriority.block)}*` : '',
+    '',
+    ...blocks.slice(0, 8).map((block, index) => `${index + 1}. ${block.planned_start}-${block.planned_end} · ${findActivityName(userRecord, block)}`),
+    blocks.length > 8 ? `\n+${blocks.length - 8} jadwal lain di Chroniq.` : '',
+    openUrl ? `\nBuka Chroniq: ${openUrl}` : '',
+    '',
+    'Balas *plan* kapan saja untuk minta ringkasan ini lagi.'
+  ].filter(Boolean).join('\n');
+}
+
+function morningBriefMessage(userRecord, date) {
+  const blocks = scheduleBlocksForToday(userRecord, date);
+  const firstBlock = blocks[0];
+  const topPriority = [...blocks]
+    .map((block) => ({ block, activity: findActivity(userRecord, block) }))
+    .sort((a, b) => Number(b.activity?.priority || 0) - Number(a.activity?.priority || 0))[0];
+
+  return [
+    `*${BOT_DISPLAY_NAME} Morning Brief*`,
+    '━━━━━━━━━━━━━━',
+    '',
+    blocks.length ? `Hari ini ada *${blocks.length}* fokus terjadwal.` : 'Hari ini belum ada jadwal aktif.',
+    topPriority ? `Prioritas utama: *${findActivityName(userRecord, topPriority.block)}*` : '',
+    firstBlock ? `Mulai pertama: ${firstBlock.planned_start} · ${findActivityName(userRecord, firstBlock)}` : '',
+    '',
+    blocks.length ? 'Strategi hari ini: mulai kecil, jangan tunggu mood sempurna.' : 'Buka Chroniq untuk menyusun ritme hari ini.',
+    dashboardUrl() ? `\nBuka Chroniq: ${dashboardUrl()}` : ''
+  ].filter(Boolean).join('\n');
+}
+
+function nightReflectionMessage() {
+  return [
+    `*${BOT_DISPLAY_NAME} Night Reflection*`,
+    '━━━━━━━━━━━━━━',
+    '',
+    'Hari ini ritmemu gimana?',
+    '',
+    '1. Fokus',
+    '2. Capek',
+    '3. Kacau',
+    '',
+    'Balas angka. Chroniq akan menyimpan sinyal ini untuk bahan adaptasi jadwal berikutnya.'
+  ].join('\n');
+}
+
 async function sendText(phone, text) {
   if (!sock || connectionState !== 'connected') {
     throw new Error('WhatsApp belum connected. Scan QR bridge dulu.');
@@ -259,6 +357,15 @@ async function sendConfirmationPoll(phone, taskName) {
 
 async function sendReminder(phone, userRecord, block, minutesUntil) {
   const taskName = findActivityName(userRecord, block);
+  userRecord.lastReminder = {
+    blockId: block.id,
+    activityId: block.activity_id,
+    taskName,
+    plannedStart: block.planned_start,
+    plannedEnd: block.planned_end,
+    date: block.date,
+    sentAt: new Date().toISOString()
+  };
   await sendText(phone, reminderMessage(userRecord, block, minutesUntil));
 
   try {
@@ -295,7 +402,11 @@ async function handleIncomingMessages(event) {
         ? 'skip'
         : lower === '2' || lower.startsWith('tunda') || lower.startsWith('snooze')
           ? 'snooze'
-          : 'chat';
+          : lower === 'plan' || lower.includes('jadwal hari ini')
+            ? 'share_plan'
+            : lower.includes('capek') || lower.includes('kacau') || lower.includes('fokus')
+              ? 'reflection'
+              : 'chat';
 
     await appendCommand({
       id: `cmd-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
@@ -303,6 +414,7 @@ async function handleIncomingMessages(event) {
       phone: normalizePhone(from),
       text,
       intent,
+      context: userRecord.lastReminder || null,
       createdAt: new Date().toISOString()
     });
 
@@ -322,6 +434,12 @@ async function handleIncomingMessages(event) {
     } else if (intent === 'snooze') {
       await sock.sendMessage(message.key.remoteJid, {
         text: '*Tunda dicatat.*\n\nAku simpan permintaan tunda kamu. Untuk MVP, buka Chroniq untuk re-optimize jadwal terbaru.'
+      });
+    } else if (intent === 'share_plan') {
+      await sock.sendMessage(message.key.remoteJid, { text: planSummaryMessage(userRecord) });
+    } else if (intent === 'reflection') {
+      await sock.sendMessage(message.key.remoteJid, {
+        text: '*Refleksi dicatat.*\n\nSinyal energi kamu sudah masuk ke bridge Chroniq AI.'
       });
     }
   }
@@ -381,7 +499,6 @@ async function reminderTick() {
 
     const timeZone = userRecord.timezone || DEFAULT_TIMEZONE;
     const now = localParts(new Date(), timeZone);
-    const leadMinutes = Number(userRecord.leadMinutes || 15);
 
     for (const block of userRecord.schedule || []) {
       if (block.date !== now.date || block.type !== 'activity') continue;
@@ -389,18 +506,48 @@ async function reminderTick() {
       if (startMinutes === null) continue;
 
       const minutesUntil = startMinutes - now.minutes;
-      const shouldSend = minutesUntil <= leadMinutes && minutesUntil >= 0;
-      const reminderKey = `${block.id}:${block.date}:${block.planned_start}:${leadMinutes}`;
+      for (const offset of reminderOffsets(userRecord, block)) {
+        const shouldSend = minutesUntil <= offset && minutesUntil >= Math.max(0, offset - 1);
+        const reminderKey = `${block.id}:${block.date}:${block.planned_start}:reminder:${offset}`;
 
-      if (!shouldSend || userRecord.sentReminders?.[reminderKey]) continue;
+        if (!shouldSend || userRecord.sentReminders?.[reminderKey]) continue;
 
-      try {
-        await sendReminder(userRecord.phone, userRecord, block, minutesUntil);
-        userRecord.sentReminders = { ...(userRecord.sentReminders || {}), [reminderKey]: new Date().toISOString() };
-        changed = true;
-        logger.info({ userId: userRecord.userId, blockId: block.id }, 'Reminder sent.');
-      } catch (error) {
-        logger.error({ error: error.message, userId: userRecord.userId }, 'Failed to send reminder.');
+        try {
+          await sendReminder(userRecord.phone, userRecord, block, minutesUntil);
+          userRecord.sentReminders = { ...(userRecord.sentReminders || {}), [reminderKey]: new Date().toISOString() };
+          changed = true;
+          logger.info({ userId: userRecord.userId, blockId: block.id, offset }, 'Reminder sent.');
+        } catch (error) {
+          logger.error({ error: error.message, userId: userRecord.userId }, 'Failed to send reminder.');
+        }
+      }
+    }
+
+    const morningMinutes = timeToMinutes(MORNING_BRIEF_TIME);
+    if (morningMinutes !== null && now.minutes >= morningMinutes && now.minutes <= morningMinutes + 1) {
+      const reminderKey = `morning-brief:${now.date}`;
+      if (!userRecord.sentReminders?.[reminderKey]) {
+        try {
+          await sendText(userRecord.phone, morningBriefMessage(userRecord, now.date));
+          userRecord.sentReminders = { ...(userRecord.sentReminders || {}), [reminderKey]: new Date().toISOString() };
+          changed = true;
+        } catch (error) {
+          logger.error({ error: error.message, userId: userRecord.userId }, 'Failed to send morning brief.');
+        }
+      }
+    }
+
+    const nightMinutes = timeToMinutes(NIGHT_REFLECTION_TIME);
+    if (nightMinutes !== null && now.minutes >= nightMinutes && now.minutes <= nightMinutes + 1) {
+      const reminderKey = `night-reflection:${now.date}`;
+      if (!userRecord.sentReminders?.[reminderKey]) {
+        try {
+          await sendText(userRecord.phone, nightReflectionMessage());
+          userRecord.sentReminders = { ...(userRecord.sentReminders || {}), [reminderKey]: new Date().toISOString() };
+          changed = true;
+        } catch (error) {
+          logger.error({ error: error.message, userId: userRecord.userId }, 'Failed to send night reflection.');
+        }
       }
     }
   }
@@ -485,6 +632,19 @@ async function createServer() {
     } catch (error) {
       logger.warn({ error: error.message }, 'Test confirmation poll failed.');
     }
+    res.json({ ok: true, sentAt: new Date().toISOString() });
+  });
+
+  app.post('/api/messages/share-plan', requireKey, async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const data = await readJson(storePath, { users: {} });
+    const userRecord = data.users[userId];
+
+    if (!userRecord) {
+      return res.status(404).json({ ok: false, error: 'Jadwal user belum tersinkron ke bridge.' });
+    }
+
+    await sendText(userRecord.phone, planSummaryMessage(userRecord));
     res.json({ ok: true, sentAt: new Date().toISOString() });
   });
 

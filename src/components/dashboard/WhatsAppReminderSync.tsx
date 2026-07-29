@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { MessageCircle, RefreshCcw, Send, ShieldCheck, WifiOff } from "lucide-react";
+import { MessageCircle, RefreshCcw, Send, Share2, ShieldCheck, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePoeStore } from "@/store/useStore";
 
@@ -43,6 +43,7 @@ export function WhatsAppReminderSync() {
     const [isChecking, setIsChecking] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
     const [feedback, setFeedback] = useState("");
 
     useEffect(() => {
@@ -128,6 +129,27 @@ export function WhatsAppReminderSync() {
         }
     };
 
+    const sharePlan = async () => {
+        if (!user) return;
+        setIsSharing(true);
+        setFeedback("");
+        try {
+            await syncSchedule();
+            const response = await fetch("/api/wa/reminder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "share-plan", userId: user.id }),
+            });
+            const data = await response.json() as BridgeResponse;
+            if (!response.ok || !data.ok) throw new Error(data.error || "Gagal mengirim plan ke WhatsApp.");
+            setFeedback("Plan hari ini sudah dikirim ke WhatsApp.");
+        } catch (error) {
+            setFeedback(error instanceof Error ? error.message : "Gagal mengirim plan ke WhatsApp.");
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
     const isConnected = status?.state === "connected";
     const isConfigured = status?.configured !== false;
     const canUse = Boolean(phone.trim()) && isConfigured;
@@ -193,7 +215,7 @@ export function WhatsAppReminderSync() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Button
                     type="button"
                     variant="outline"
@@ -219,6 +241,14 @@ export function WhatsAppReminderSync() {
                     className="rounded-xl bg-[#22c55e] text-xs font-bold text-white hover:bg-[#16a34a]"
                 >
                     <Send className="mr-1.5 h-3.5 w-3.5" /> Test
+                </Button>
+                <Button
+                    type="button"
+                    onClick={sharePlan}
+                    disabled={!canUse || isSharing}
+                    className="rounded-xl bg-[#4f46e5] text-xs font-bold text-white hover:bg-[#4338ca]"
+                >
+                    <Share2 className="mr-1.5 h-3.5 w-3.5" /> Plan
                 </Button>
             </div>
 

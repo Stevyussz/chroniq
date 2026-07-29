@@ -10,6 +10,14 @@ Fitur ini membuat Chroniq bisa mengirim reminder jadwal otomatis ke WhatsApp use
 4. Bridge menyimpan jadwal di server.
 5. Bridge mengecek jadwal berkala dan mengirim chat WhatsApp dari nomor Chroniq AI.
 
+## Fitur WhatsApp
+
+- Reminder adaptif: prioritas tinggi/belajar/tugas panjang bisa mendapat pengingat tambahan.
+- Reply sync: user bisa balas `1`, `done`, `2`, `tunda 15`, `3`, atau `skip`.
+- Morning brief: ringkasan fokus harian otomatis sesuai `MORNING_BRIEF_TIME`.
+- Night reflection: cek ritme malam otomatis sesuai `NIGHT_REFLECTION_TIME`.
+- Share plan: tombol `Plan` di Settings mengirim ringkasan jadwal hari ini ke WhatsApp.
+
 ## Deployment Gratis
 
 Jalankan service ini di panel Pterodactyl 1GB, VPS gratis, Raspberry Pi, atau laptop yang selalu menyala.
@@ -41,13 +49,15 @@ DEFAULT_TIMEZONE=Asia/Jakarta
 REMINDER_CHECK_INTERVAL_MS=30000
 BOT_DISPLAY_NAME=Chroniq AI
 CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
-ENABLE_CONFIRMATION_POLL=true
+ENABLE_CONFIRMATION_POLL=false
+MORNING_BRIEF_TIME=06:30
+NIGHT_REFLECTION_TIME=21:30
 ```
 
 Setelah bridge hidup, scan QR di terminal panel memakai nomor WhatsApp khusus Chroniq AI.
 
 `CHRONIQ_APP_URL` dipakai untuk menambahkan link CTA "Buka Chroniq" di pesan WhatsApp.
-`ENABLE_CONFIRMATION_POLL=true` akan mengirim poll konfirmasi setelah reminder, sehingga user bisa tap pilihan Selesai/Tunda/Skip. Kalau poll tidak stabil di device tertentu, set ke `false`; quick reply lewat angka/teks tetap jalan.
+`ENABLE_CONFIRMATION_POLL=true` akan mengirim poll konfirmasi setelah reminder, tetapi default yang disarankan adalah `false` agar quick reply lewat angka/teks menjadi sumber aksi utama dan tidak bergantung pada voting poll.
 
 ## Env Chroniq / Vercel
 

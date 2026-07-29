@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-type BridgeAction = "status" | "sync" | "test";
+type BridgeAction = "status" | "sync" | "test" | "commands" | "share-plan";
 
 const getBridgeConfig = () => {
     const url = process.env.CHRONIQ_WA_BRIDGE_URL?.replace(/\/$/, "");
@@ -54,6 +54,17 @@ export async function POST(request: NextRequest) {
             return callBridge("/api/messages/test", {
                 method: "POST",
                 body: JSON.stringify({ phone: body.phone }),
+            });
+        }
+
+        if (action === "commands") {
+            return callBridge("/api/commands");
+        }
+
+        if (action === "share-plan") {
+            return callBridge("/api/messages/share-plan", {
+                method: "POST",
+                body: JSON.stringify({ userId: body.userId }),
             });
         }
 
