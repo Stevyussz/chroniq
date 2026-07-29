@@ -24,16 +24,19 @@ import { GoogleCalendarSync } from "@/components/dashboard/GoogleCalendarSync";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { LongRangePlanPanel } from "@/components/dashboard/LongRangePlanPanel";
 import { DailyProgressRing } from "@/components/dashboard/DailyProgressRing";
+import { WhatsAppReminderSync } from "@/components/dashboard/WhatsAppReminderSync";
 
 // Custom Hooks for Modular Logic
 import { useExecutionTracker } from "@/hooks/useExecutionTracker";
 import { useScheduleManager } from "@/hooks/useScheduleManager";
+import { useWhatsAppReminderSync } from "@/hooks/useWhatsAppReminderSync";
 
 export default function Dashboard() {
   const router = useRouter();
   const { user, fixedBlocks, energySlots, activities, currentSchedule, executionLogs, activeBlockId, exp, level, currentStreak, longestStreak, resetTimeline, resetAll, timerMode, pomodoroCount } = usePoeStore();
   const [isClient, setIsClient] = useState(false);
   const { width, height } = useWindowSize();
+  useWhatsAppReminderSync();
 
   // Initialize sensors for DnD
   // TouchSensor: 250ms delay prevents conflict with scroll on mobile.
@@ -277,6 +280,8 @@ export default function Dashboard() {
             <CardContent className="pt-6 space-y-6">
 
               <GoogleCalendarSync />
+
+              <WhatsAppReminderSync />
 
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-[#8b6b61] dark:text-[#d7ccc8]">Data Portability (Backup)</h3>

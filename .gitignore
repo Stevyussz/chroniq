@@ -32,9 +32,15 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!services/chroniq-wa-bridge/.env.example
 
 # vercel
 .vercel
+
+# chroniq whatsapp bridge runtime data
+/services/chroniq-wa-bridge/auth_info
+/services/chroniq-wa-bridge/data
+/services/chroniq-wa-bridge/node_modules
 
 # typescript
 *.tsbuildinfo

@@ -23,6 +23,11 @@ interface PoeState {
     gcalToken: string | null;
     autoPushGcal: boolean;
     pushNotificationsEnabled: boolean;
+    whatsappReminderEnabled: boolean;
+    whatsappPhone: string;
+    whatsappReminderLeadMinutes: number;
+    whatsappLastSyncAt: string | null;
+    whatsappLastSyncError: string | null;
 
     // AI Reflection Cache
     aiReflectionText: string | null;
@@ -79,6 +84,12 @@ interface PoeState {
     setGcalToken: (token: string | null) => void;
     setAutoPushGcal: (autoPush: boolean) => void;
     setPushNotificationsEnabled: (enabled: boolean) => void;
+    setWhatsAppReminderSettings: (settings: {
+        enabled?: boolean;
+        phone?: string;
+        leadMinutes?: number;
+    }) => void;
+    setWhatsAppSyncStatus: (status: { syncedAt?: string | null; error?: string | null }) => void;
 
     // AI Cache Actions
     setAiReflection: (text: string, dateISO: string, suggestedSlots?: EnergySlot[] | null) => void;
@@ -121,6 +132,11 @@ export const usePoeStore = create<PoeState>()(
             gcalToken: null,
             autoPushGcal: false,
             pushNotificationsEnabled: false,
+            whatsappReminderEnabled: false,
+            whatsappPhone: "",
+            whatsappReminderLeadMinutes: 15,
+            whatsappLastSyncAt: null,
+            whatsappLastSyncError: null,
 
             aiReflectionText: null,
             aiReflectionDate: null,
@@ -256,6 +272,17 @@ export const usePoeStore = create<PoeState>()(
             setGcalToken: (token) => set({ gcalToken: token }),
             setAutoPushGcal: (autoPush) => set({ autoPushGcal: autoPush }),
             setPushNotificationsEnabled: (enabled) => set({ pushNotificationsEnabled: enabled }),
+            setWhatsAppReminderSettings: (settings) => set((state) => ({
+                whatsappReminderEnabled: settings.enabled ?? state.whatsappReminderEnabled,
+                whatsappPhone: settings.phone ?? state.whatsappPhone,
+                whatsappReminderLeadMinutes: settings.leadMinutes
+                    ? Math.min(120, Math.max(1, Math.round(settings.leadMinutes)))
+                    : state.whatsappReminderLeadMinutes,
+            })),
+            setWhatsAppSyncStatus: (status) => set((state) => ({
+                whatsappLastSyncAt: status.syncedAt !== undefined ? status.syncedAt : state.whatsappLastSyncAt,
+                whatsappLastSyncError: status.error !== undefined ? status.error : state.whatsappLastSyncError,
+            })),
 
             setAiReflection: (text, dateISO, suggestedSlots) => set({ 
                 aiReflectionText: text, 
@@ -323,6 +350,11 @@ export const usePoeStore = create<PoeState>()(
                 gcalToken: null,
                 autoPushGcal: false,
                 pushNotificationsEnabled: false,
+                whatsappReminderEnabled: false,
+                whatsappPhone: "",
+                whatsappReminderLeadMinutes: 15,
+                whatsappLastSyncAt: null,
+                whatsappLastSyncError: null,
                 // Streak and Chat reset — prevent data from leaking across user sessions
                 currentStreak: 0,
                 longestStreak: 0,
