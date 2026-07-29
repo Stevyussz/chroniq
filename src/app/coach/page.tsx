@@ -420,35 +420,35 @@ export default function CoachPage() {
     if (!isClient || !user) return <div className="min-h-screen flex items-center justify-center text-[#a1887f] dark:text-[#a19d9b] font-medium animate-pulse transition-colors">Memuat Chroniq AI...</div>;
 
     return (
-        <div className="mx-auto flex h-[calc(100vh-5.5rem)] max-w-5xl flex-col px-3 pb-4 pt-2 sm:px-6 md:h-[86vh]">
+        <div className="flex min-h-[calc(100dvh-4.5rem)] w-full flex-col px-0 pt-1 sm:px-4">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 flex flex-col gap-4 rounded-3xl border border-white/70 bg-white/55 px-4 py-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#111827]/55 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
                 <div className="flex items-center gap-4">
-                    <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#4f46e5] via-[#ff8a65] to-[#34d399] text-white shadow-inner">
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#4f46e5] via-[#ff8a65] to-[#34d399] text-white shadow-inner sm:h-14 sm:w-14">
                         <div className="absolute inset-0 bg-white/20 blur-md rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-                        <Brain className="z-10 h-8 w-8 drop-shadow-md" />
+                        <Brain className="z-10 h-7 w-7 drop-shadow-md sm:h-8 sm:w-8" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                             <h1 className="text-2xl font-black tracking-tight text-[#1f2937] dark:text-[#e5edf8] sm:text-3xl">Chroniq AI Coach</h1>
                             <span className="rounded-full border border-[#c7d2fe]/70 bg-[#eef2ff] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#4f46e5] dark:border-[#818cf8]/30 dark:bg-[#312e81]/35 dark:text-[#c7d2fe]">
                                 Context aware
                             </span>
                         </div>
-                        <p className="flex items-center gap-1.5 text-xs font-semibold text-[#64748b] dark:text-[#94a3b8] sm:text-sm">
+                        <p className="flex items-center gap-1.5 text-xs font-semibold leading-relaxed text-[#64748b] dark:text-[#94a3b8] sm:text-sm">
                             <Sparkles className="h-3.5 w-3.5 text-[#ff8a65]" /> Mengelola task, jadwal, checklist, dan plan belajar dari satu chat.
                         </p>
                     </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
-                    <div className="rounded-2xl border border-white/70 bg-white/60 px-3 py-2 text-center dark:border-white/10 dark:bg-[#1e1e24]/60">
+                    <div className="rounded-2xl border border-[#e2e8f0] bg-white/50 px-3 py-2 text-center backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
                         <div className="text-sm font-black text-[#1f2937] dark:text-[#e5edf8]">{activities.length}</div>
                         <div className="text-[10px] font-bold uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Tasks</div>
                     </div>
-                    <div className="rounded-2xl border border-white/70 bg-white/60 px-3 py-2 text-center dark:border-white/10 dark:bg-[#1e1e24]/60">
+                    <div className="rounded-2xl border border-[#e2e8f0] bg-white/50 px-3 py-2 text-center backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
                         <div className="text-sm font-black text-[#1f2937] dark:text-[#e5edf8]">{currentSchedule.filter(b => b.type === "activity").length}</div>
                         <div className="text-[10px] font-bold uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Today</div>
                     </div>
@@ -456,7 +456,7 @@ export default function CoachPage() {
                         type="button"
                         onClick={handleNewChat}
                         variant="outline"
-                        className="h-full min-h-12 rounded-2xl border-[#c7d2fe] bg-white/70 px-3 text-xs font-bold text-[#4f46e5] hover:bg-[#eef2ff] dark:border-[#818cf8]/30 dark:bg-[#1e1b4b]/25 dark:text-[#c7d2fe] dark:hover:bg-[#312e81]/35"
+                        className="h-full min-h-12 rounded-2xl border-[#c7d2fe] bg-white/55 px-3 text-xs font-bold text-[#4f46e5] backdrop-blur-sm hover:bg-[#eef2ff] dark:border-[#818cf8]/30 dark:bg-white/5 dark:text-[#c7d2fe] dark:hover:bg-[#312e81]/35"
                     >
                         <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Chat baru
                     </Button>
@@ -466,29 +466,27 @@ export default function CoachPage() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative flex flex-1 flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/62 shadow-xl shadow-[#c7d2fe]/20 backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-[#0f172a]/72 dark:shadow-black/25"
+                className="relative flex flex-1 flex-col overflow-hidden"
             >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4f46e5] via-[#ff8a65] to-[#34d399]" />
-
-                <div className="relative z-10 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+                <div className="relative z-10 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6 sm:py-7">
                     {messages.length <= 1 && (
                         <motion.div
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mx-auto max-w-3xl"
+                            className="mx-auto w-full max-w-4xl py-4 sm:py-8"
                         >
-                            <div className="mb-5 rounded-3xl border border-[#c7d2fe]/60 bg-[#f8fafc]/80 p-5 shadow-sm dark:border-[#818cf8]/20 dark:bg-[#111827]/70 sm:p-6">
-                                <div className="mb-3 flex items-center gap-3">
+                            <div className="mb-5">
+                                <div className="mb-5 flex items-start gap-3 sm:items-center">
                                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4f46e5] to-[#ff8a65] text-white">
                                         <PanelTop className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-black text-[#1f2937] dark:text-[#e5edf8]">Mau aku bantu susun apa?</h2>
-                                        <p className="text-sm font-medium text-[#64748b] dark:text-[#94a3b8]">Pilih prompt cepat atau ketik bebas. Aku bisa langsung mengeksekusi perubahan di Chroniq.</p>
+                                        <h2 className="text-2xl font-black tracking-tight text-[#1f2937] dark:text-[#e5edf8] sm:text-3xl">Mau aku bantu susun apa?</h2>
+                                        <p className="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-[#64748b] dark:text-[#94a3b8]">Pilih prompt cepat atau ketik bebas. Aku bisa langsung mengeksekusi perubahan di Chroniq.</p>
                                     </div>
                                 </div>
                                 <div className="mb-2 text-xs font-black uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Prompt cepat</div>
-                                <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                                     {suggestionPrompts.map((item) => {
                                         const Icon = item.icon;
                                         return (
@@ -519,7 +517,7 @@ export default function CoachPage() {
                                 key={msg.id}
                                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                             >
-                                <div className={`relative max-w-[92%] rounded-3xl px-4 py-3 text-[14px] leading-relaxed transition-colors sm:max-w-[78%] sm:px-5 sm:py-3.5 sm:text-[15px] ${msg.role === "user" ? "rounded-tr-lg bg-[#1f2937] text-white shadow-md dark:bg-[#e5edf8] dark:text-[#0f172a]" : "rounded-tl-lg border border-[#e2e8f0] bg-white/86 text-[#334155] shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1e293b]/82 dark:text-[#dbeafe]"}`}>
+                                <div className={`relative max-w-[92%] rounded-3xl px-4 py-3 text-[14px] leading-relaxed transition-colors sm:max-w-[74%] sm:px-5 sm:py-3.5 sm:text-[15px] lg:max-w-[62%] ${msg.role === "user" ? "rounded-tr-lg bg-[#1f2937] text-white shadow-md dark:bg-[#e5edf8] dark:text-[#0f172a]" : "rounded-tl-lg border border-[#e2e8f0] bg-white/86 text-[#334155] shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1e293b]/82 dark:text-[#dbeafe]"}`}>
                                     {msg.role === 'model' && (
                                         <div className="absolute -left-2 -top-2 rounded-full border border-white bg-gradient-to-br from-[#4f46e5] to-[#ff8a65] p-1 shadow-sm dark:border-[#1e293b]">
                                             <Brain className="h-3 w-3 text-white sm:h-4 sm:w-4" />
@@ -549,9 +547,9 @@ export default function CoachPage() {
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="relative z-10 shrink-0 border-t border-[#e2e8f0]/80 bg-white/88 p-3 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0f172a]/90 sm:p-4">
+                <div className="relative z-10 shrink-0 border-t border-[#e2e8f0]/80 bg-white/78 px-3 py-3 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0f172a]/78 sm:px-6 sm:py-4">
                     {recentUserPrompts.length > 0 && (
-                        <div className="mx-auto mb-2 flex max-w-3xl items-center gap-2 overflow-x-auto pb-1">
+                        <div className="mx-auto mb-2 flex w-full max-w-4xl items-center gap-2 overflow-x-auto pb-1">
                             <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-[#64748b] dark:text-[#94a3b8]">Riwayat aktif</span>
                             {recentUserPrompts.map((item) => (
                                 <button
@@ -565,7 +563,7 @@ export default function CoachPage() {
                             ))}
                         </div>
                     )}
-                    <div className="mx-auto mb-2 flex max-w-3xl gap-2 overflow-x-auto pb-1">
+                    <div className="mx-auto mb-2 flex w-full max-w-4xl gap-2 overflow-x-auto pb-1">
                         {suggestionPrompts.slice(0, 3).map((item) => (
                             <button
                                 key={`mini-${item.title}`}
@@ -578,7 +576,7 @@ export default function CoachPage() {
                         ))}
                     </div>
 
-                    <form onSubmit={handleSend} className="mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border border-[#cbd5e1] bg-[#f8fafc] p-2 shadow-inner transition-all focus-within:border-[#818cf8] focus-within:ring-4 focus-within:ring-[#c7d2fe]/35 dark:border-white/10 dark:bg-[#111827] dark:focus-within:border-[#818cf8]/60 dark:focus-within:ring-[#818cf8]/20 sm:gap-3">
+                    <form onSubmit={handleSend} className="mx-auto flex w-full max-w-4xl items-end gap-2 rounded-3xl border border-[#cbd5e1] bg-[#f8fafc] p-2 shadow-inner transition-all focus-within:border-[#818cf8] focus-within:ring-4 focus-within:ring-[#c7d2fe]/35 dark:border-white/10 dark:bg-[#111827] dark:focus-within:border-[#818cf8]/60 dark:focus-within:ring-[#818cf8]/20 sm:gap-3">
                         <textarea
                             ref={inputRef}
                             value={input}
