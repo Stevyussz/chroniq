@@ -25,6 +25,7 @@ CHRONIQ_APP_URL=https://chroniq.yusrilastaghina.my.id
 ENABLE_CONFIRMATION_POLL=false
 ENABLE_CHRONIQ_AI_FEEDBACK=true
 ENABLE_RICH_LINK_PREVIEW=false
+INCOMING_REPLY_WINDOW_MINUTES=30
 MORNING_BRIEF_TIME=06:30
 NIGHT_REFLECTION_TIME=21:30
 ```
@@ -33,6 +34,7 @@ NIGHT_REFLECTION_TIME=21:30
 `ENABLE_CONFIRMATION_POLL=true` mengirim poll konfirmasi setelah reminder, tapi default yang disarankan adalah `false` agar quick action teks/angka menjadi sumber aksi utama.
 `ENABLE_CHRONIQ_AI_FEEDBACK=true` membuat bridge meminta feedback singkat dari endpoint Chroniq AI saat user membalas WA; kalau gagal, bridge otomatis pakai feedback lokal.
 `ENABLE_RICH_LINK_PREVIEW=false` menjaga pesan dikirim sebagai teks biasa agar delivery lebih stabil. Aktifkan hanya kalau kamu benar-benar ingin preview/link card.
+`INCOMING_REPLY_WINDOW_MINUTES=30` membatasi pemrosesan pesan sinkronisasi lama dari WhatsApp, tetapi balasan live tetap langsung diproses.
 
 ## Env Chroniq Next.js
 

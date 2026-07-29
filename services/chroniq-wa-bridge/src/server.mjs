@@ -32,6 +32,7 @@ const MORNING_BRIEF_TIME = process.env.MORNING_BRIEF_TIME || '06:30';
 const NIGHT_REFLECTION_TIME = process.env.NIGHT_REFLECTION_TIME || '21:30';
 const ENABLE_CHRONIQ_AI_FEEDBACK = process.env.ENABLE_CHRONIQ_AI_FEEDBACK !== 'false';
 const ENABLE_RICH_LINK_PREVIEW = process.env.ENABLE_RICH_LINK_PREVIEW === 'true';
+const INCOMING_REPLY_WINDOW_MS = Number(process.env.INCOMING_REPLY_WINDOW_MINUTES || 30) * 60_000;
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -119,19 +120,60 @@ function timeToMinutes(value) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function unwrapMessageContent(payload) {
+  let content = payload;
+  for (let depth = 0; depth < 5; depth += 1) {
+    const next =
+      content?.ephemeralMessage?.message ||
+      content?.viewOnceMessage?.message ||
+      content?.viewOnceMessageV2?.message ||
+      content?.documentWithCaptionMessage?.message ||
+      content?.editedMessage?.message ||
+      content?.protocolMessage?.editedMessage?.message;
+
+    if (!next || next === content) break;
+    content = next;
+  }
+  return content;
+}
+
 function getMessageText(message) {
-  const payload = message?.message;
+  const payload = unwrapMessageContent(message?.message);
+  const interactiveParams = payload?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+
+  if (interactiveParams) {
+    try {
+      const parsed = JSON.parse(interactiveParams);
+      return String(parsed?.id || parsed?.display_text || parsed?.title || interactiveParams).trim();
+    } catch {
+      return String(interactiveParams).trim();
+    }
+  }
+
   return (
     payload?.conversation ||
     payload?.extendedTextMessage?.text ||
     payload?.imageMessage?.caption ||
     payload?.videoMessage?.caption ||
     payload?.buttonsResponseMessage?.selectedDisplayText ||
+    payload?.buttonsResponseMessage?.selectedButtonId ||
     payload?.templateButtonReplyMessage?.selectedDisplayText ||
+    payload?.templateButtonReplyMessage?.selectedId ||
     payload?.listResponseMessage?.title ||
-    payload?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson ||
     ''
   ).trim();
+}
+
+function getMessageTimestampMs(message) {
+  const timestamp = message?.messageTimestamp;
+  const seconds =
+    typeof timestamp === 'number'
+      ? timestamp
+      : typeof timestamp?.toNumber === 'function'
+        ? timestamp.toNumber()
+        : Number(timestamp || 0);
+
+  return seconds ? seconds * 1000 : 0;
 }
 
 function findActivityName(userRecord, block) {
@@ -495,18 +537,30 @@ async function appendCommand(command) {
 }
 
 async function handleIncomingMessages(event) {
-  if (event.type !== 'notify') return;
-
   const store = await readJson(storePath, { users: {} });
 
   for (const message of event.messages || []) {
     if (message.key?.fromMe) continue;
-    const from = String(message.key?.remoteJid || '').split('@')[0];
+
+    const remoteJid = String(message.key?.remoteJid || '');
+    if (!remoteJid.endsWith('@s.whatsapp.net')) continue;
+
+    const messageAtMs = getMessageTimestampMs(message);
+    const isFresh = !messageAtMs || Date.now() - messageAtMs <= INCOMING_REPLY_WINDOW_MS;
+    if (event.type !== 'notify' && !isFresh) continue;
+
+    const from = remoteJid.split('@')[0];
     const text = getMessageText(message);
-    if (!from || !text) continue;
+    if (!from || !text) {
+      logger.debug({ eventType: event.type, from }, 'Incoming WhatsApp message ignored because text is empty.');
+      continue;
+    }
 
     const userRecord = Object.values(store.users || {}).find((item) => normalizePhone(item.phone) === normalizePhone(from));
-    if (!userRecord) continue;
+    if (!userRecord) {
+      logger.warn({ eventType: event.type, from: normalizePhone(from) }, 'Incoming WhatsApp reply ignored because phone is not synced.');
+      continue;
+    }
 
     const lower = text.toLowerCase().trim();
     const isReflectionReply = userRecord.lastPrompt?.type === 'night-reflection' && ['1', '2', '3'].includes(lower);
@@ -524,7 +578,7 @@ async function handleIncomingMessages(event) {
               ? 'reflection'
               : 'chat';
 
-    await appendCommand({
+    const command = {
       id: `cmd-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
       userId: userRecord.userId,
       phone: normalizePhone(from),
@@ -532,7 +586,9 @@ async function handleIncomingMessages(event) {
       intent,
       context: userRecord.lastReminder || null,
       createdAt: new Date().toISOString()
-    });
+    };
+    await appendCommand(command);
+    logger.info({ eventType: event.type, userId: userRecord.userId, intent }, 'Incoming WhatsApp command received.');
 
     if (intent === 'done') {
       await sock.sendMessage(message.key.remoteJid, {
