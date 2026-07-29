@@ -617,6 +617,17 @@ async function appendCommand(command) {
   await writeJson(commandPath, data);
 }
 
+async function ackCommands(ids) {
+  const normalizedIds = new Set((Array.isArray(ids) ? ids : []).map((id) => String(id)).filter(Boolean));
+  if (!normalizedIds.size) return 0;
+
+  const data = await readJson(commandPath, { commands: [] });
+  const before = data.commands?.length || 0;
+  data.commands = (data.commands || []).filter((command) => !normalizedIds.has(command.id));
+  await writeJson(commandPath, data);
+  return before - data.commands.length;
+}
+
 async function handleIncomingMessages(event) {
   const store = await readJson(storePath, { users: {} });
 
@@ -898,6 +909,11 @@ async function createServer() {
   app.get('/api/commands', requireKey, async (_req, res) => {
     const data = await readJson(commandPath, { commands: [] });
     res.json({ ok: true, commands: data.commands || [] });
+  });
+
+  app.post('/api/commands/ack', requireKey, async (req, res) => {
+    const acked = await ackCommands(req.body?.ids);
+    res.json({ ok: true, acked });
   });
 
   setInterval(() => {

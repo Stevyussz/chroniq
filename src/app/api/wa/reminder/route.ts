@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-type BridgeAction = "status" | "sync" | "test" | "commands" | "share-plan";
+type BridgeAction = "status" | "sync" | "test" | "commands" | "ack-commands" | "share-plan";
 
 const getBridgeConfig = () => {
     const url = process.env.CHRONIQ_WA_BRIDGE_URL?.replace(/\/$/, "");
@@ -59,6 +59,13 @@ export async function POST(request: NextRequest) {
 
         if (action === "commands") {
             return callBridge("/api/commands");
+        }
+
+        if (action === "ack-commands") {
+            return callBridge("/api/commands/ack", {
+                method: "POST",
+                body: JSON.stringify({ ids: Array.isArray(body.ids) ? body.ids : [] }),
+            });
         }
 
         if (action === "share-plan") {
