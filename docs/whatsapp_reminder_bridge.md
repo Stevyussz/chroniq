@@ -53,6 +53,7 @@ ENABLE_CONFIRMATION_POLL=false
 ENABLE_CHRONIQ_AI_FEEDBACK=true
 ENABLE_RICH_LINK_PREVIEW=false
 INCOMING_REPLY_WINDOW_MINUTES=30
+ALLOW_SELF_CHAT_COMMANDS=false
 MORNING_BRIEF_TIME=06:30
 NIGHT_REFLECTION_TIME=21:30
 ```
@@ -64,6 +65,7 @@ Setelah bridge hidup, scan QR di terminal panel memakai nomor WhatsApp khusus Ch
 `ENABLE_CHRONIQ_AI_FEEDBACK=true` membuat bridge meminta feedback singkat dari Chroniq AI setelah user membalas. Jika endpoint AI tidak tersedia, bridge otomatis memakai feedback lokal.
 `ENABLE_RICH_LINK_PREVIEW=false` menjaga pesan reminder memakai payload teks biasa seperti chat manual. Ini lebih stabil jika pesan rich preview dari Baileys tertahan di centang satu.
 `INCOMING_REPLY_WINDOW_MINUTES=30` menjaga bridge tetap menerima reply terbaru meskipun event Baileys bukan `notify`, tanpa memproses ulang histori lama.
+`ALLOW_SELF_CHAT_COMMANDS=true` dipakai hanya saat test lokal jika nomor penerima sama dengan nomor WhatsApp Chroniq AI. Di produksi sebaiknya tetap `false`.
 
 ## Env Chroniq / Vercel
 

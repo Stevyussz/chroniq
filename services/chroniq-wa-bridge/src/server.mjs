@@ -33,6 +33,7 @@ const NIGHT_REFLECTION_TIME = process.env.NIGHT_REFLECTION_TIME || '21:30';
 const ENABLE_CHRONIQ_AI_FEEDBACK = process.env.ENABLE_CHRONIQ_AI_FEEDBACK !== 'false';
 const ENABLE_RICH_LINK_PREVIEW = process.env.ENABLE_RICH_LINK_PREVIEW === 'true';
 const INCOMING_REPLY_WINDOW_MS = Number(process.env.INCOMING_REPLY_WINDOW_MINUTES || 30) * 60_000;
+const ALLOW_SELF_CHAT_COMMANDS = process.env.ALLOW_SELF_CHAT_COMMANDS === 'true';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -174,6 +175,77 @@ function getMessageTimestampMs(message) {
         : Number(timestamp || 0);
 
   return seconds ? seconds * 1000 : 0;
+}
+
+function uniqueSyncedPhones(store) {
+  return [...new Set(
+    Object.values(store.users || {})
+      .filter((item) => item.enabled && item.phone)
+      .map((item) => normalizePhone(item.phone))
+      .filter(Boolean)
+  )];
+}
+
+function findUserRecordByPhone(store, phone, remoteJid) {
+  const users = Object.values(store.users || {});
+  const exact = users.find((item) => normalizePhone(item.phone) === phone);
+  if (exact) return exact;
+
+  if (remoteJid.endsWith('@lid')) {
+    const enabledUsers = users.filter((item) => item.enabled && item.phone);
+    const phones = uniqueSyncedPhones(store);
+    if (phones.length === 1) {
+      logger.warn({ remoteJid, mappedPhone: phone, syncedPhone: phones[0] }, 'Using only synced user as fallback for LID reply.');
+      return enabledUsers.find((item) => normalizePhone(item.phone) === phones[0]) || null;
+    }
+  }
+
+  return null;
+}
+
+async function phoneFromRemoteJid(remoteJid, store) {
+  if (remoteJid.endsWith('@s.whatsapp.net')) {
+    return normalizePhone(remoteJid.split('@')[0]);
+  }
+
+  if (remoteJid.endsWith('@lid')) {
+    try {
+      const pnJid = await sock?.signalRepository?.lidMapping?.getPNForLID?.(remoteJid);
+      if (pnJid) return normalizePhone(String(pnJid).split('@')[0]);
+    } catch (error) {
+      logger.debug({ error: error.message }, 'Failed to resolve LID to phone number.');
+    }
+
+    const phones = uniqueSyncedPhones(store);
+    if (phones.length === 1) {
+      logger.warn({ remoteJid }, 'Using the only synced phone as fallback for LID reply.');
+      return phones[0];
+    }
+  }
+
+  return normalizePhone(remoteJid.split('@')[0]);
+}
+
+function detectIntent(lower, userRecord) {
+  const isReflectionReply = userRecord.lastPrompt?.type === 'night-reflection' && ['1', '2', '3'].includes(lower);
+  if (isReflectionReply) return 'reflection';
+  if (lower === '1' || lower.includes('selesai') || lower.startsWith('done')) return 'done';
+  if (lower === '3' || lower.startsWith('skip')) return 'skip';
+  if (lower === '2' || lower.startsWith('tunda') || lower.startsWith('snooze')) return 'snooze';
+  if (lower === 'plan' || lower.includes('jadwal hari ini')) return 'share_plan';
+  if (lower.includes('capek') || lower.includes('kacau') || lower.includes('fokus')) return 'reflection';
+  return 'chat';
+}
+
+function isSelfChatCommandCandidate(lower) {
+  const compact = lower.replace(/\s+/g, ' ').trim();
+  return (
+    ['1', '2', '3', 'done', 'selesai', 'skip', 'plan', 'tunda', 'snooze'].includes(compact) ||
+    /^done[.!?]*$/.test(compact) ||
+    /^skip[.!?]*$/.test(compact) ||
+    /^tunda( \d{1,3})?[.!?]*$/.test(compact) ||
+    /^snooze( \d{1,3})?[.!?]*$/.test(compact)
+  );
 }
 
 function findActivityName(userRecord, block) {
@@ -540,48 +612,38 @@ async function handleIncomingMessages(event) {
   const store = await readJson(storePath, { users: {} });
 
   for (const message of event.messages || []) {
-    if (message.key?.fromMe) continue;
-
     const remoteJid = String(message.key?.remoteJid || '');
-    if (!remoteJid.endsWith('@s.whatsapp.net')) continue;
+    if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
 
     const messageAtMs = getMessageTimestampMs(message);
     const isFresh = !messageAtMs || Date.now() - messageAtMs <= INCOMING_REPLY_WINDOW_MS;
     if (event.type !== 'notify' && !isFresh) continue;
 
-    const from = remoteJid.split('@')[0];
     const text = getMessageText(message);
-    if (!from || !text) {
-      logger.debug({ eventType: event.type, from }, 'Incoming WhatsApp message ignored because text is empty.');
+    if (!text) {
+      logger.debug({ eventType: event.type, remoteJid }, 'Incoming WhatsApp message ignored because text is empty.');
       continue;
     }
-
-    const userRecord = Object.values(store.users || {}).find((item) => normalizePhone(item.phone) === normalizePhone(from));
-    if (!userRecord) {
-      logger.warn({ eventType: event.type, from: normalizePhone(from) }, 'Incoming WhatsApp reply ignored because phone is not synced.');
-      continue;
-    }
-
     const lower = text.toLowerCase().trim();
-    const isReflectionReply = userRecord.lastPrompt?.type === 'night-reflection' && ['1', '2', '3'].includes(lower);
-    const intent = isReflectionReply
-      ? 'reflection'
-      : lower === '1' || lower.includes('selesai') || lower.startsWith('done')
-      ? 'done'
-      : lower === '3' || lower.startsWith('skip')
-        ? 'skip'
-        : lower === '2' || lower.startsWith('tunda') || lower.startsWith('snooze')
-          ? 'snooze'
-          : lower === 'plan' || lower.includes('jadwal hari ini')
-            ? 'share_plan'
-            : lower.includes('capek') || lower.includes('kacau') || lower.includes('fokus')
-              ? 'reflection'
-              : 'chat';
+
+    if (message.key?.fromMe && (!ALLOW_SELF_CHAT_COMMANDS || !isSelfChatCommandCandidate(lower))) {
+      logger.debug({ eventType: event.type, remoteJid }, 'Own WhatsApp message ignored.');
+      continue;
+    }
+
+    const from = await phoneFromRemoteJid(remoteJid, store);
+    const userRecord = findUserRecordByPhone(store, from, remoteJid);
+    if (!userRecord) {
+      logger.warn({ eventType: event.type, remoteJid, from }, 'Incoming WhatsApp reply ignored because phone is not synced.');
+      continue;
+    }
+
+    const intent = detectIntent(lower, userRecord);
 
     const command = {
       id: `cmd-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
       userId: userRecord.userId,
-      phone: normalizePhone(from),
+      phone: normalizePhone(userRecord.phone || from),
       text,
       intent,
       context: userRecord.lastReminder || null,
