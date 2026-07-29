@@ -526,7 +526,16 @@ async function chroniqAiFeedback(intent, userRecord, commandText) {
       })
     });
 
+    if (!response.ok) {
+      throw new Error(`Chroniq AI feedback endpoint returned ${response.status}`);
+    }
+
     const data = await response.json();
+    if (data?.mode === 'offline' || data?.mode === 'offline-fallback') {
+      logger.warn({ mode: data.mode }, 'Chroniq AI feedback endpoint is in offline mode; using WhatsApp fallback feedback.');
+      return commandFeedbackFallback(intent, userRecord, commandText);
+    }
+
     const reply = String(data?.reply || '').replace(/```json[\s\S]*?```/g, '').trim();
     return reply || commandFeedbackFallback(intent, userRecord, commandText);
   } catch (error) {
